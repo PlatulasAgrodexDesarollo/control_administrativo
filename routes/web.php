@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperadorController; 
-
+use App\Http\Controllers\VariedadController;
 
 
 Route::get('/login', function () {
@@ -59,7 +59,7 @@ Route::get('operadores/archivo', [OperadorController::class, 'archivo'])->name('
 
 
 Route::post('operadores/{operador}/desactivar', [OperadorController::class, 'destroy'])->name('operadores.destroy');
-
+Route::delete('variedades/{variedad}', [VariedadController::class, 'destroy'])->name('variedades.destroy');
 
 Route::post('operadores/{operador}/reactivar', [OperadorController::class, 'reactivate'])->name('operadores.reactivate');
 
@@ -67,4 +67,6 @@ Route::post('operadores/{operador}/reactivar', [OperadorController::class, 'reac
 
 Route::delete('operadores/delete/{operador}', [OperadorController::class, 'hardDelete'])->name('operadores.hard_delete');
 
+
 Route::resource('operadores', OperadorController::class) ->parameters([ 'operadores' => 'operador',  ]) ->except(['destroy' ]);
+Route::resource('variedades', VariedadController::class) ->parameters(['variedades'=>'variedad',]);
