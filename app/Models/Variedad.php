@@ -8,6 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 class Variedad extends Model
 {
     use HasFactory;
-    protected $table = 'variedad';
-    protected $fillable = ['nombre_variedad', 'descripcion'];
+
+   
+    protected $table = 'variedades';
+
+
+    protected $primaryKey = 'ID_Variedad';
+    public $incrementing = true;
+
+
+    protected $fillable = [
+        'nombre',
+        'especie', 
+        'color',   
+        'codigo',
+    ];
 }

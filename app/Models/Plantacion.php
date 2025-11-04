@@ -8,37 +8,43 @@ use Illuminate\Database\Eloquent\Model;
 class Plantacion extends Model
 {
     use HasFactory;
-
-    // Nombre de la tabla en la base de datos
+    
     protected $table = 'plantacion';
+    protected $primaryKey = 'ID_Plantacion'; 
+    public $incrementing = true; 
+    
 
-    // Campos que se pueden llenar masivamente (FKs y datos)
     protected $fillable = [
-        'fecha_plantacion', 
-        'cantidad', 
-        'ubicacion_invernadero', 
-        'variedad_id', 
-        'llegada_planta_id', 
-        'operador_id', 
-        'observaciones'
+        'Fecha_Plantacion', 
+        'Plantas_Plantadas', 
+        'Observaciones', 
+        'ID_Llegada',        
+        'ID_Variedad',         
+        'Operador_Plantacion_ID'
     ];
 
-    // Relación 1: La Variedad de la planta
-    public function variedad()
-    {
-        return $this->belongsTo(Variedad::class, 'variedad_id');
-    }
 
-    // Relación 2: El Lote de Inventario de donde proviene (Trazabilidad)
     public function loteLlegada()
     {
-        // 'llegada_planta_id' es la FK en esta tabla que apunta a LlegadaPlanta
-        return $this->belongsTo(LlegadaPlanta::class, 'llegada_planta_id');
+        return $this->belongsTo(LlegadaPlanta::class, 'ID_Llegada', 'ID_Llegada');
+    }
+    
+    
+    public function operadorPlantacion()
+    {
+        return $this->belongsTo(Operador::class, 'Operador_Plantacion', 'ID_Operador');
+    }
+    
+
+    public function variedad()
+    {
+        return $this->belongsTo(Variedad::class, 'ID_Variedad', 'ID_Variedad');
     }
 
-    // Relación 3: El Operador que realizó la tarea
-    public function operador()
+    public function operadorLlegada()
     {
-        return $this->belongsTo(Operador::class, 'operador_id');
+        return $this->belongsTo(Operador::class, 'Operador_Llegada', 'ID_Operador');
     }
+    
+ 
 }

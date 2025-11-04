@@ -9,15 +9,18 @@ class Operador extends Model
 {
     use HasFactory;
     
-    // Indica el nombre de la tabla en la base de datos
+    // Nombre de la tabla
     protected $table = 'operadores'; 
+    
+    
+    protected $primaryKey = 'ID_Operador';
+    public $incrementing = true; 
 
-    // Define los campos que se pueden llenar masivamente (Mass Assignment)
+    
     protected $fillable = [
-        'nombre',
+        'nombre', 
         'apellido',
         'puesto',
-        'observaciones',
         'estado',
     ];
 }
