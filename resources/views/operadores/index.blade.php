@@ -44,16 +44,7 @@ $texto_boton = "Regresar al Menú";
                     </div>
                 </a>
             </div>
-            <div class="col-12 col-sm-6 col-lg-4">
-                <a href="{{ route('operadores.archivo') }}" class="text-decoration-none">
-                    <div class="card shadow-sm card-admin h-100"> 
-                        <div class="card-body text-center">
-                            <h4 class="card-title">📦 Histórico y Eliminación</h4>
-                            <p class="card-text small text-muted">Gestión de operadores inactivos y borrado definitivo.</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
+           
 
         </div>
 </main>
