@@ -5,12 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Operador;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule; 
+
 class OperadorController extends Controller
 {
-    
-    // INDEX: Muestra el Sub-Dashboard (Menú de Tarjetas)
-    
+
     public function index()
     {
         $ruta = route('dashboard');
@@ -21,8 +19,7 @@ class OperadorController extends Controller
             ->with(compact('ruta', 'texto_boton'));
     }
 
-    // CREATE: Muestra el Formulario de Registro
-
+    // Muestra el Formulario de Registro
     public function create()
     {
         $ruta = route('operadores.index');
@@ -32,34 +29,22 @@ class OperadorController extends Controller
             ->with(compact('ruta', 'texto_boton'));
     }
 
-  
-    //  STORE: Guarda un Nuevo Operador
- 
+    // Guarda un Nuevo Operador
     public function store(Request $request)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:100',
-            'apellido' => 'required|string|max:100',
-            'puesto' => 'required|string|unique:operadores,identificacion|max:50',
-            'observaciones' => 'nullable|string',
-        ]);
 
-        $data = $request->all();
-        $data['estado'] = 1; 
+        $request->validate(['nombre' => 'required|string|max:100',]);
 
-        Operador::create($data);
+        Operador::create($request->all());
 
-        return redirect()->route('operadores.listaoperadores') 
+        return redirect()->route('operadores.listaoperadores')
             ->with('success', 'Operador registrado exitosamente.');
     }
 
-  
-    //LISTADO: Muestra la Tabla de Gestión (ACTIVOS)
-
+    // Muestra la Tabla de Gestión
     public function listaoperadores()
     {
-      
-        $operadores = Operador::where('estado', 1)->get();
+        $operadores = Operador::all();
 
         $ruta = route('operadores.index');
         $texto_boton = "Menú de Operadores";
@@ -68,9 +53,7 @@ class OperadorController extends Controller
             ->with(compact('ruta', 'texto_boton'));
     }
 
-   
-    //EDIT: Muestra el Formulario de Edición
-
+    // Muestra el Formulario de Edición
     public function edit(Operador $operador)
     {
         $ruta = route('operadores.listaoperadores');
@@ -80,98 +63,65 @@ class OperadorController extends Controller
             ->with(compact('ruta', 'texto_boton'));
     }
 
-    
-    //UPDATE: Actualiza el Operador en la BD
-
+    // Actualiza el Operador en la BD
     public function update(Request $request, Operador $operador)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:100',
-            'apellido' => 'required|string|max:100',
+        $request->validate(['nombre' => 'required|string|max:100',]);
 
-            'identificacion' => [
-                'required', 
-                'string', 
-                'max:50', 
-                Rule::unique('operadores')->ignore($operador->id)
-            ],
-            'observaciones' => 'nullable|string',
-            'estado' => 'required|boolean',
-        ]);
-
-        // Actualiza el registro con los nuevos datos (incluyendo el estado)
         $operador->update($request->all());
 
         return redirect()->route('operadores.listaoperadores')
             ->with('success', 'Operador "' . $operador->nombre . '" actualizado exitosamente.');
     }
-    
-    
-    // 7. DESTROY: DESACTIVACIÓN LÓGICA (Llamado por la ruta DELETE)
-    
+
     public function destroy(Operador $operador)
     {
         $nombre_operador = $operador->nombre;
-        $id_operador = $operador->id;
-        
-        
-        DB::table('operadores')
-            ->where('id', $id_operador)
-            ->update(['estado' => 0]);
 
-     
-        return redirect()->route('operadores.listaoperadores') 
-            ->with('success', 'Operador "' . $nombre_operador . '" desactivado y movido al archivo.');
+        // Desactivación Lógica: Cambia el estado a 0
+        $operador->update(['estado' => 0]);
+
+        return redirect()->route('operadores.listaoperadores')
+            ->with('success', 'Operador "' . $nombre_operador . '" DESACTIVADO.');
     }
-    
-  
-    //REACTIVATE: REACTIVAR (Llamado por la ruta PUT)
 
+    // REACTIVAR (Llamado por el botón "Reactivar")
     public function reactivate(Operador $operador)
     {
-        
-        $operador->update(['estado' => 1]); 
-        
+        $operador->update(['estado' => 1]);
+
         return redirect()->route('operadores.listaoperadores')
-            ->with('success', 'Operador "' . $operador->nombre . '" reactivado exitosamente.');
-    }
-    
-
-    // ARCHIVO: Muestra la Tabla de Gestión (INACTIVOS)
-    
-    public function archivo()
-    {
-        
-        $operadores = Operador::where('estado', 0)->get();
-
-        $ruta = route('operadores.index');
-        $texto_boton = "Menú de Operadores";
-
-        return view('operadores.archivo', compact('operadores'))
-            ->with(compact('ruta', 'texto_boton'));
+            ->with('success', 'Operador "' . $operador->nombre . '" REACTIVADO exitosamente.');
     }
 
-    
-    // HARDDELETE: Eliminacion permanente del los datos administrativos
-
+    //  Método para el Borrado Definitivo (Hard Delete)
     public function hardDelete(Operador $operador)
     {
-        try {
-            $nombre_operador = $operador->nombre;
-           
-            $operador->forceDelete(); 
 
-            return redirect()->route('operadores.archivo')
-                ->with('success', 'Operador "' . $nombre_operador . '" ELIMINADO PERMANENTEMENTE. Se borraron los datos administrativos.');
-        } catch (\Illuminate\Database\QueryException $e) {
-         
-            return redirect()->route('operadores.archivo')
-                ->with('error', 'ERROR: No se puede borrar al operador. Aún tiene registros de actividad (Plantación, Chequeos, etc.) asociados en el sistema.');
+        $nombre_operador = $operador->nombre;
+        $id_operador = $operador->ID_Operador;
+
+        try {
+            // Deshabilitar temporalmente la verificación de FKs
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+            // Ejecutar la eliminación física (Hard Delete)
+            DB::table('operadores')->where('ID_Operador', $id_operador)->delete();
+
+            // Volver a habilitar la verificación de FKs
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            return redirect()->route('operadores.listaoperadores')
+                ->with('success', 'Operador "' . $nombre_operador . '" ELIMINADO DEFINITIVAMENTE del sistema.');
+        } catch (\Exception $e) {
+            // En caso de un fallo inesperado (que no sea por FK)
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;'); 
+
+           
+            $operador->update(['estado' => 0]);
+
+            return redirect()->route('operadores.listaoperadores')
+                ->with('error', 'ADVERTENCIA: Fallo crítico. El operador fue DESACTIVADO.');
         }
-    }
-    public function show(Operador $operador)
-    {
-        
-     return redirect()->route('operadores.edit', $operador->id);
     }
 }
