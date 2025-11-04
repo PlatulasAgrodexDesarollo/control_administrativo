@@ -1,68 +1,102 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\models\Variedad;
+
+use App\Models\Variedad;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VariedadController extends Controller
 {
-    
+    // Muestra el listado de Variedades
     public function index()
     {
         $variedades = Variedad::all();
-        
-        $ruta = route('dashboard'); 
+
+        $ruta = route('dashboard');
         $texto_boton = "Regresar a Módulos";
 
         return view('variedades.index', compact('variedades'))
-        ->with(compact('ruta', 'texto_boton'));
+            ->with(compact('ruta', 'texto_boton'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    // Muestra el formulario para crear una nueva Variedad
     public function create()
     {
-        //
+        $ruta = route('variedades.index');
+        $texto_boton = "Volver al Catálogo";
+
+        return view('variedades.create')
+            ->with(compact('ruta', 'texto_boton'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Guarda el nuevo registro de variedad
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nombre' => 'required|string|max:100|unique:variedades,nombre',
+            'especie' => 'nullable|string|max:100',
+            'color' => 'nullable|string|max:50',
+            'codigo' => 'required|string|unique:variedades,codigo|max:20', 
+       
+        ]);
+
+        Variedad::create($request->all());
+
+        return redirect()->route('variedades.index')
+            ->with('success', 'Variedad registrada exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    // Muestra el formulario de edición
+    public function edit(Variedad $variedad)
     {
-        //
+        $ruta = route('variedades.index');
+        $texto_boton = "Volver al Catálogo";
+
+        return view('variedades.edit', compact('variedad'))
+            ->with(compact('ruta', 'texto_boton'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    // Actualiza el registro
+    public function update(Request $request, Variedad $variedad)
     {
-        //
+        $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('variedades', 'nombre')->ignore($variedad->ID_Variedad, 'ID_Variedad')
+            ],
+            'especie' => 'nullable|string|max:100',
+            'color' => 'nullable|string|max:50',
+            'codigo' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('variedades', 'codigo')->ignore($variedad->ID_Variedad, 'ID_Variedad')
+            ],
+        
+        ]);
+
+        $variedad->update($request->all());
+
+        return redirect()->route('variedades.index')
+            ->with('success', 'Variedad actualizada exitosamente.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    // Implementación mínima de otros métodos
+    public function show(Variedad $variedad)
     {
-        //
+        return redirect()->route('variedades.edit', $variedad->ID_Variedad);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Variedad $variedad)
     {
-        //
+        try {
+            $variedad->delete();
+            return redirect()->route('variedades.index')->with('success', 'Variedad eliminada exitosamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('variedades.index')->with('error', 'ERROR: No se puede eliminar la variedad. Existen registros de actividad asociados.');
+        }
     }
 }
