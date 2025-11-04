@@ -26,7 +26,7 @@
                             <div class="bg-success bg-opacity-10 p-3 rounded me-3">
                                 <i class="bi bi-person-badge text-success fs-2"></i>
                             </div>
-                            <h3 class="h5 mb-0">Operadores</h3>
+                            <h3 class="h5 mb-0">Personal</h3>
                         </div>
                         <p class="card-text">Gestión de personal que realiza tareas en el invernadero.</p>
                         {{-- Usamos route() de Laravel --}}
@@ -37,7 +37,7 @@
                 </div>
             </div>
             
-            {{-- MÓDULO 2: VARIEDADES (Catálogo) --}}
+            {{-- MÓDULO 2: CATALOGO (Catálogo) --}}
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
@@ -45,7 +45,7 @@
                             <div class="bg-info bg-opacity-10 p-3 rounded me-3">
                                 <i class="bi bi-flower1 text-info fs-2"></i>
                             </div>
-                            <h3 class="h5 mb-0">Variedades</h3>
+                            <h3 class="h5 mb-0">Catalogo</h3>
                         </div>
                         <p class="card-text">Catálogo de especies de plantas que se cultivan.</p>
                         <a href="{{ route('variedades.index') }}" class="btn btn-outline-info stretched-link">
@@ -83,7 +83,7 @@
                             </div>
                             <h3 class="h5 mb-0">Plantación</h3>
                         </div>
-                        <p class="card-text">Registro de siembra de lotes en ubicaciones del invernadero.</p>
+                        <p class="card-text">Registro de plantación de plantas.</p>
                         <a href="{{ route('plantacion.index') }}" class="btn btn-outline-danger stretched-link">
                             Acceder <i class="bi bi-arrow-right ms-1"></i>
                         </a>
@@ -91,26 +91,7 @@
                 </div>
             </div>
             
-            {{-- MÓDULO 5: CONTROL DE PLAGAS --}}
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-secondary bg-opacity-10 p-3 rounded me-3">
-                                <i class="bi bi-bug text-secondary fs-2"></i>
-                            </div>
-                            <h3 class="h5 mb-0">Control de Plagas</h3>
-                        </div>
-                        <p class="card-text">Registro de fumigaciones y tratamientos sanitarios.</p>
-                        <a href="{{ route('control_plaga.index') }}" class="btn btn-outline-secondary stretched-link">
-                            Acceder <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Agrega los demás módulos (Chequeos, Cosecha, etc.) siguiendo este patrón --}}
-
+            
         </div>
     </main>
 @endsection
