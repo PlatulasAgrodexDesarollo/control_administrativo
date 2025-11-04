@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperadorController; 
 use App\Http\Controllers\VariedadController;
+use App\Http\Controllers\LlegadaPlantaController;
+use App\Http\Controllers\PlantacionController;
 
 
 Route::get('/login', function () {
@@ -41,32 +43,16 @@ Route::get('/plantacion', function () {
     return "Cargando Módulo Plantación...";
 })->name('plantacion.index');
 
-// Control de Plagas:
-Route::get('/control_plaga', function () {
-    return "Cargando Módulo Control Plagas...";
-})->name('control_plaga.index');
 
-// Chequeo Agronómico:
-Route::get('/chequeo_agronomico', function () {
-    return "Cargando Módulo Chequeos...";
-})->name('chequeo_agronomico.index');
 
 
 Route::get('operadores/listaoperadores', [OperadorController::class, 'listaoperadores'])->name('operadores.listaoperadores'); 
 
 
-Route::get('operadores/archivo', [OperadorController::class, 'archivo'])->name('operadores.archivo');
+Route::resource('operadores', OperadorController::class)  ->parameters(['operadores' => 'operador']);
+Route::resource('variedades', VariedadController::class) ->parameters(['variedades' => 'variedad']);
+Route::resource('llegada_planta', LlegadaPlantaController::class) ->parameters(['llegada_planta' => 'llegada_planta']);
+Route::resource('plantacion', PlantacionController::class) ->parameters(['plantacion' => 'plantacion']);
 
-
-Route::post('operadores/{operador}/desactivar', [OperadorController::class, 'destroy'])->name('operadores.destroy');
-Route::delete('variedades/{variedad}', [VariedadController::class, 'destroy'])->name('variedades.destroy');
-
-Route::post('operadores/{operador}/reactivar', [OperadorController::class, 'reactivate'])->name('operadores.reactivate');
-
-
-
-Route::delete('operadores/delete/{operador}', [OperadorController::class, 'hardDelete'])->name('operadores.hard_delete');
-
-
-Route::resource('operadores', OperadorController::class) ->parameters([ 'operadores' => 'operador',  ]) ->except(['destroy' ]);
-Route::resource('variedades', VariedadController::class) ->parameters(['variedades'=>'variedad',]);
+Route::put('operadores/{operador}/reactivate', [OperadorController::class, 'reactivate'])->name('operadores.reactivate');
+Route::delete('operadores/{operador}/hard-delete', [OperadorController::class, 'hardDelete'])->name('operadores.hardDelete');
