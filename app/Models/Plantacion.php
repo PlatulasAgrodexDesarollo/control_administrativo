@@ -8,19 +8,26 @@ use Illuminate\Database\Eloquent\Model;
 class Plantacion extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'plantacion';
-    protected $primaryKey = 'ID_Plantacion'; 
-    public $incrementing = true; 
-    
+    protected $primaryKey = 'ID_Plantacion';
+    public $incrementing = true;
+
 
     protected $fillable = [
-        'Fecha_Plantacion', 
-        'Plantas_Plantadas', 
-        'Observaciones', 
-        'ID_Llegada',        
-        'ID_Variedad',         
-        'Operador_Plantacion_ID'
+        'Fecha_Plantacion',
+        'cantidad_sembrada',
+        'cantidad_perdida',
+        'sin_raiz',
+        'pequena_o_mal_formada',
+        'Plantas_Plantadas',
+        'Observaciones',
+        'ID_Llegada',
+        'ID_Variedad',
+        'Operador_Llegada',
+        'Operador_Plantacion',
+        'editado',
+
     ];
 
 
@@ -28,13 +35,13 @@ class Plantacion extends Model
     {
         return $this->belongsTo(LlegadaPlanta::class, 'ID_Llegada', 'ID_Llegada');
     }
-    
-    
+
+
     public function operadorPlantacion()
     {
         return $this->belongsTo(Operador::class, 'Operador_Plantacion', 'ID_Operador');
     }
-    
+
 
     public function variedad()
     {
@@ -45,6 +52,4 @@ class Plantacion extends Model
     {
         return $this->belongsTo(Operador::class, 'Operador_Llegada', 'ID_Operador');
     }
-    
- 
 }
