@@ -73,7 +73,8 @@
                 </div>
             </div>
 
-            {{-- MÓDULO 4: PLANTACIÓN (Producción) --}}
+ 
+            {{-- MÓDULO 4: ACLIMATACION (Etapa de Producción)--}}
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
@@ -81,15 +82,34 @@
                             <div class="bg-danger bg-opacity-10 p-3 rounded me-3">
                                 <i class="bi bi-globe-americas text-danger fs-2"></i>
                             </div>
-                            <h3 class="h5 mb-0">Plantación</h3>
+                            <h3 class="h5 mb-0">Aclimatación</h3>
                         </div>
-                        <p class="card-text">Registro de plantación de plantas.</p>
-                        <a href="{{ route('plantacion.index') }}" class="btn btn-outline-danger stretched-link">
+                        <p class="card-text">registro de el inicio del proceso de adaptación de la planta después de la plantación.</p>
+                        <a href="{{ route('aclimatacion.index') }}" class="btn btn-outline-danger stretched-link">
                             Acceder <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
                 </div>
             </div>
+            {{-- MÓDULO 5: ENDURECIMIENETO (Etapa de Producción) --}}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-danger bg-opacity-10 p-3 rounded me-3">
+                                <i class="bi bi-globe-americas text-danger fs-2"></i>
+                            </div>
+                            <h3 class="h5 mb-0">Endurecimiento</h3>
+                        </div>
+                        <p class="card-text"></p>
+                        <a href="{{ route('endurecimiento.index') }}" class="btn btn-outline-danger stretched-link">
+                            Acceder <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+           
+            
             
             
         </div>
