@@ -13,18 +13,34 @@ class PlantacionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $plantaciones = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion'])->get();
+        $filtro = $request->input('q');
 
+      
+        $query = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion']);
 
-        $plantaciones_agrupadas = $plantaciones->groupBy('ID_Llegada');
+        if ($filtro) {
+            
+            $query->whereHas('loteLlegada.variedad', function ($q) use ($filtro) {
+            
+                $q->where('nombre', 'like', '%' . $filtro . '%')
+                    ->orWhere('codigo', 'like', '%' . $filtro . '%');
+            })->orWhereHas('operadorPlantacion', function ($q) use ($filtro) {
+              
+                $q->where('nombre', 'like', '%' . $filtro . '%');
+            });
+    
+        }
 
-        $ruta = route('dashboard');
-        $texto_boton = "Regresar a Módulos";
+  
+        $plantaciones_agrupadas = $query->get()->groupBy('ID_Llegada');
 
+        $ruta = route('aclimatacion.index');
+        $texto_boton = "Volver a Aclimatación";
 
-        return view('plantacion.index', compact('plantaciones_agrupadas'))
+        return view('plantacion.index', compact('plantaciones_agrupadas', 'filtro')) 
             ->with(compact('ruta', 'texto_boton'));
     }
 
@@ -78,11 +94,11 @@ class PlantacionController extends Controller
         $consumido_previamente = Plantacion::where('ID_Llegada', $request->ID_Llegada)
             ->sum(DB::raw('cantidad_sembrada + cantidad_perdida'));
 
-     
+
         $cantidad_perdida_calculada = $request->sin_raiz + $request->pequena_o_mal_formada;
         $nuevo_consumo = $request->cantidad_sembrada + $cantidad_perdida_calculada;
 
-      
+
         $total_final_consumido = $consumido_previamente + $nuevo_consumo;
         $stock_inicial = $lote->Cantidad_Plantas;
 
@@ -94,7 +110,7 @@ class PlantacionController extends Controller
                 ->withErrors(['cantidad_sembrada' => "ERROR: El lote solo tiene " . number_format($stock_restante, 0) . " plantas restantes. La cantidad total excede el inventario inicial."]);
         }
 
-       
+
         $data = $request->all();
         $data['cantidad_perdida'] = $cantidad_perdida_calculada;
         $data['ID_Variedad'] = $lote->ID_Variedad;
