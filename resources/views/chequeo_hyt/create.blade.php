@@ -19,52 +19,60 @@
         {{-- CAMPO OCULTO: ID de la etapa de Aclimatación (Trazabilidad) --}}
         <input type="hidden" name="ID_Aclimatacion" value="{{ $aclimatacion->ID_Aclimatacion }}">
         <div class="row">
+            {{-- Usamos col-12 para que la tarjeta ocupe todo el ancho disponible --}}
             <div class="col-12">
                 <div class="card shadow">
                     <div class="card-header bg-primary text-white">
                         Registro de Parámetros Ambientales
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-bordered mb-0">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 15%;">Fecha</th>
-                                        <th style="width: 10%;">Hora</th>
-                                        <th style="width: 15%;">Temp(T)</th>
-                                        <th style="width: 15%;">HumRe(Hr)</th>
-                                        <th style="width: 15%;">Luz(Lux)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        {{-- Fecha --}}
-                                        <td><input type="date" name="Fecha_Chequeo" class="form-control" required value="{{ old('Fecha_Chequeo', date('Y-m-d')) }}"></td>
+                    <div class="card-body">
 
-                                        {{-- Hora --}}
-                                        <td> <input type="time" name="Hora_Chequeo" class="form-control" required value="{{ old('Hora_Chequeo', date('H:i')) }}"> </td>
+                        
+                        <div class="row g-3">
 
-                                        {{-- Temperatura --}}
-                                        <td><input type="number" step="0.1" name="Temperatura" class="form-control" required value="{{ old('Temperatura') }}"></td>
+                            {{-- FECHA: --}}
+                            <div class="col-md-6">
+                                <label for="Fecha_Chequeo" class="form-label">Fecha</label>
+                                <input type="date" name="Fecha_Chequeo" class="form-control" required value="{{ old('Fecha_Chequeo', date('Y-m-d')) }}">
+                            </div>
 
-                                        {{-- Humedad Relativa (Hr) --}}
-                                        <td><input type="number" step="0.1" name="Hr" class="form-control" value="{{ old('Hr') }}" min="0" max="100"></td>
+                            {{-- HORA: --}}
+                            <div class="col-md-6">
+                                <label for="Hora_Chequeo" class="form-label">Hora</label>
+                                <input type="time" name="Hora_Chequeo" class="form-control" required value="{{ old('Hora_Chequeo', date('H:i')) }}">
+                            </div>
 
-                                        {{-- Intensidad de Luz (Lux) --}}
-                                        <td><input type="number" name="Lux" class="form-control" value="{{ old('Lux') }}" min="0"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                            {{-- TEMPERATURA: --}}
+                            <div class="col-md-4">
+                                <label for="Temperatura" class="form-label">Temp (°C)</label>
+                                <input type="number" step="0.1" name="Temperatura" class="form-control" required value="{{ old('Temperatura') }}">
+                            </div>
+
+                            {{-- HUMEDAD:--}}
+                            <div class="col-md-4">
+                                <label for="Hr" class="form-label">Humedad (Hr)</label>
+                                <input type="number" step="0.1" name="Hr" class="form-control" value="{{ old('Hr') }}" min="0" max="100">
+                            </div>
+
+                            {{-- LUZ:  --}}
+                            <div class="col-md-4">
+                                <label for="Lux" class="form-label">Luz (Lux)</label>
+                                <input type="number" name="Lux" class="form-control" value="{{ old('Lux') }}" min="0">
+                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
+
         <h5 class="mt-4">Actividades y Observaciones</h5>
 
         {{-- Actividades--}}
         <div class="mb-3">
-            <label for="Actividades" class="form-label">Actividaes:</label>
+            <label for="Actividades" class="form-label">Actividades:</label>
             <textarea name="Actividades" class="form-control" required>{{ old('Actividades') }}</textarea>
             @error('Actividades') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
@@ -85,7 +93,7 @@
                 </option>
                 @endforeach
             </select>
-            @error('Operador_Responsable_ID') <div class="text-danger">{{ $message }}</div> @enderror
+            @error('Operador_Responsable') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
         <button type="submit" class="btn btn-success mt-3">Guardar Chequeo</button>
@@ -106,13 +114,13 @@
 
             const horaFormateada = `${hora}:${minutos}`;
 
-            
+
             if (document.activeElement !== horaInput) {
                 horaInput.value = horaFormateada;
             }
         }
 
-        
+
         actualizarHora();
         setInterval(actualizarHora, 1000);
     });
