@@ -27,7 +27,7 @@ Route::get('/', function () {
 });
 
 
-
+//Operadores:
 Route::get('/operadores', function () {
     return "Cargando Módulo Operadores...";
 })->name('operadores.index');
@@ -48,8 +48,8 @@ Route::get('/plantacion', function () {
     return "Cargando Módulo Plantación...";
 })->name('plantacion.index');
 
-//control plagas:
-Route::get('/control_plagas', function(){
+//aclimatacion
+Route::get('/aclimatacion', function(){
     return "cargando modulo Control plagas...";
 })->name('control_plagas.index');
 
@@ -60,6 +60,9 @@ Route::get('operadores/listaoperadores', [OperadorController::class, 'listaopera
 Route::get('control_plagas/create/{etapa_type}/{etapa_id}', [App\Http\Controllers\ControlPlagasController::class, 'create'])->name('control_plagas.create');
 Route::get('chequeo_hyt/create/{aclimatacion_id}', [ChequeoHyTController::class, 'create'])->name('chequeo_hyt.create');
 Route::get('chequeo_agribon/create/{aclimatacion_id}', [ChequeoAgribonController::class, 'create'])->name('chequeo_agribon.create');
+Route::get('chequeo_hyt/listado/{aclimatacion_id}', [App\Http\Controllers\ChequeoHyTController::class, 'listadoPorAclimatacion'])->name('chequeo_hyt.listado_aclimatacion');
+Route::put('aclimatacion/cerrar/{aclimatacion}', [\App\Http\Controllers\AclimatacionController::class, 'cerrarEtapa'])->name('aclimatacion.cerrar');
+Route::put('aclimatacion/{aclimatacion}/cerrar', [AclimatacionController::class, 'cerrarEtapa']) ->name('aclimatacion.cerrar');
 
 Route::resource('operadores', OperadorController::class)  ->parameters(['operadores' => 'operador']);
 Route::resource('variedades', VariedadController::class) ->parameters(['variedades' => 'variedad']);
