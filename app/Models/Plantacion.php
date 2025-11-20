@@ -52,4 +52,8 @@ class Plantacion extends Model
     {
         return $this->belongsTo(Operador::class, 'Operador_Llegada', 'ID_Operador');
     }
+    public function aclimataciones()
+{
+    return $this->hasMany(Aclimatacion::class, 'ID_Plantacion', 'ID_Plantacion');
+}
 }

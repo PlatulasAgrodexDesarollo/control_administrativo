@@ -35,6 +35,6 @@ class ChequeoHyT extends Model
    
     public function operadorResponsable()
     {
-        return $this->belongsTo(Operador::class, 'Operador_Responsable_ID', 'ID_Operador');
+        return $this->belongsTo(Operador::class, 'Operador_Responsable', 'ID_Operador');
     }
 }
