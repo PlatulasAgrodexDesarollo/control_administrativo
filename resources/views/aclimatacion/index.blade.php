@@ -12,12 +12,12 @@
 
 
 
-   
+
     {{-- SECCIÓN DE TARJETAS DE PROCESO  --}}
 
 
 
-    
+
     <h2 class="h4 mb-3 mt-4">Navegación de Proceso</h2>
 
     <div class="row g-3 mb-5">
@@ -57,15 +57,15 @@
 
 
     {{-- TABLA DE GESTIÓN  --}}
-   
+
 
 
     <h2 class="h4 mb-3">Etapas de Aclimatación en Curso</h2>
 
     <div class="card shadow">
-        <div class="card-body p-0">
+        <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped table-bordered mb-0">
+                <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
                             <th>ID Etapa</th>
@@ -83,8 +83,20 @@
                         <tr>
                             <td>{{ $a->ID_Aclimatacion }}</td>
                             <td>{{ \Carbon\Carbon::parse($a->Fecha_Ingreso)->format('d/m/Y') }}</td>
-                            <td>Plantación #{{ $a->ID_Plantacion }}</td>
-                            <td>{{ $a->variedad->nombre ?? 'N/A' }}</td>
+
+                         
+                            <td>
+                               Lote #{{ $a->loteLlegada?->ID_Llegada ?? 'N/A' }}
+                            </td>
+
+
+                            <td>
+                                {{ $a->variedad->nombre ?? 'N/A' }}
+                                @if ($a->variedad && $a->variedad->codigo)
+                                <br><span class="badge bg-secondary">Cód: {{ $a->variedad->codigo }}</span>
+                                @endif
+                            </td>
+
                             <td>{{ $a->Estado_Inicial }}</td>
                             <td>{{ $a->Duracion_Aclimatacion }} días</td>
                             <td>{{ $a->operadorResponsable->nombre ?? 'N/A' }}</td>
