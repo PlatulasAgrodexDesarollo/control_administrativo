@@ -166,7 +166,7 @@
                         $merma_siembra = $merma_historica_lote ?? 0;
 
            
-                        $inventario_pasante_calculado = $stock_inicial_etapa - ($merma_siembra + $merma_aclimatacion);
+                        $inventario_pasante_calculado = $total_plantas_sembradas- ($merma_siembra + $merma_aclimatacion);
                         $merma_total_acumulada = $merma_siembra + $merma_aclimatacion;
 
                         
