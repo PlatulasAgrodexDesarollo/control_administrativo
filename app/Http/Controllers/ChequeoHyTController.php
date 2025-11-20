@@ -22,8 +22,8 @@ class ChequeoHyTController extends Controller
      */
     public function create($aclimatacion_id)
     {
-        $operadores = Operador::where('estado', 1)->get(); 
-        $aclimatacion = Aclimatacion::find($aclimatacion_id); 
+        $operadores = Operador::where('estado', 1)->get();
+        $aclimatacion = Aclimatacion::find($aclimatacion_id);
 
         if (!$aclimatacion) {
             return redirect()->route('aclimatacion.index')->with('error', 'Etapa de Aclimatación no encontrada.');
@@ -43,22 +43,22 @@ class ChequeoHyTController extends Controller
     {
         $request->validate([
             'Fecha_Chequeo' => 'required|date',
-            'Hora_Chequeo' => 'required', 
+            'Hora_Chequeo' => 'required',
             'Temperatura' => 'required|numeric',
-            'Hr' => 'nullable|numeric', 
-        'Lux' => 'nullable|integer|min:0',
-            'Actividaes' => 'required|string',
+            'Hr' => 'nullable|numeric',
+            'Lux' => 'nullable|integer|min:0',
+            'Actividades' => 'required|string',
             'ID_Aclimatacion' => 'required|exists:aclimatacion,ID_Aclimatacion',
             'Operador_Responsable' => 'required|exists:operadores,ID_Operador',
             'Observaciones' => 'nullable|string',
         ]);
 
-       
+
 
         ChequeoHyT::create($request->all());
 
-      
-        return redirect()->route('aclimatacion.show', $request->ID_Aclimatacion)
+
+        return redirect()->route('chequeo_hyt.listado_aclimatacion', $request->ID_Aclimatacion)
             ->with('success', 'Chequeo H/T registrado exitosamente.');
     }
 
@@ -92,5 +92,22 @@ class ChequeoHyTController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+    public function listadoPorAclimatacion($aclimatacion_id)
+    {
+        
+        $aclimatacion = Aclimatacion::with(['variedad', 'operadorResponsable'])->findOrFail($aclimatacion_id);
+
+     
+        $chequeos = \App\Models\ChequeoHyT::where('ID_Aclimatacion', $aclimatacion_id)
+            ->with('operadorResponsable')
+            ->get();
+
+        $ruta = route('aclimatacion.show', $aclimatacion->ID_Aclimatacion);
+        $texto_boton = "Volver a Gestión de Etapa";
+
+        
+        return view('chequeo_hyt.index', compact('chequeos', 'aclimatacion'))
+            ->with(compact('ruta', 'texto_boton'));
     }
 }
