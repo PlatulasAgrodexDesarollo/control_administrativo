@@ -26,8 +26,10 @@
                 {{-- Asegúrate que el valor del option sea el ID del lote --}}
                 <option value="{{ $lote->id_llegada }}" {{ old('ID_Llegada') == $lote->id_llegada ? 'selected' : '' }}>
                     Lote #{{ $lote->id_llegada }} |
-                    Var: {{ $lote->nombre_variedad }} [{{ $lote->codigo_variedad }}] |
-                    Stock Disponible: {{ number_format($lote->stock_disponible, 0) }} und.
+                    Variedad: {{ $lote->nombre_variedad }} | 
+                    Codigo: [{{ $lote->codigo_variedad }}] 
+
+                  
                 </option>
                 @endforeach
             </select>
