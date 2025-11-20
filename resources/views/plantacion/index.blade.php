@@ -11,6 +11,31 @@
     @if (session('error'))
     <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
+    <div class="mb-4">
+
+  
+        <div class="d-flex gap-2 mb-3">
+
+            <input type="text"
+                id="filtroLotesInput"
+                class="form-control form-control-lg"
+                placeholder="Buscar por Variedad, Código o Nombre del Operador..."
+                value="{{ $filtro ?? '' }}">
+
+            <button type="button" onclick="aplicarFiltro()" class="btn btn-success flex-shrink-0">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+
+
+
+        <div class="d-flex gap-2">
+
+            @if ($filtro || request('fecha_inicio'))
+            <a href="{{ route('plantacion.index') }}" class="btn btn-secondary">Limpiar Filtro</a>
+            @endif
+        </div>
+    </div>
 
     <a href="{{ route('plantacion.create') }}" class="btn btn-primary mb-3">
         <i class="bi bi-geo-alt-fill"></i> Registrar Nueva Plantación
@@ -24,10 +49,13 @@
     $lote = $plantaciones_del_lote->first()->loteLlegada;
     $variedad = $lote->variedad ?? null;
 
-   
+
     $total_recibidas = $lote->Cantidad_Plantas;
     $total_sembradas = $plantaciones_del_lote->sum('cantidad_sembrada');
     $total_perdidas = $plantaciones_del_lote->sum('cantidad_perdida');
+    $inventario_actual = $total_recibidas - $total_perdidas;
+    $restante_por_plantar = $inventario_actual - $total_sembradas;
+    $restante_por_plantar = max(0, $restante_por_plantar);
     @endphp
 
     <div class="card shadow mb-5">
@@ -41,6 +69,8 @@
                     / Recibidas: {{ number_format($total_recibidas, 0) }}
                     / Total Sembrado: {{ number_format($total_sembradas, 0) }}
                     / Pérdida Acumulada: <span class="text-warning">{{ number_format($total_perdidas, 0) }}</span>
+                    / **Inventario Actual:** <span class="badge bg-success">{{ number_format($inventario_actual, 0) }}</span>
+                    / **Restante :** <span class="badge bg-info">{{ number_format($restante_por_plantar, 0) }}</span>
                 </small>
             </h5>
         </div>
@@ -65,6 +95,7 @@
                         <tr>
                             <td> {{ $p->ID_Plantacion }}</td>
                             <td>{{ \Carbon\Carbon::parse($p->Fecha_Plantacion)->format('d/m/Y') }}</td>
+                            
                             <td>{{ number_format($p->cantidad_sembrada, 0) }}</td>
 
                             {{-- Pérdida TOTAL (Suma de las categorías) --}}
@@ -101,4 +132,25 @@
     <p class="lead text-center">No hay registros de plantación en el invernadero.</p>
     @endif
 </div>
+
+
+@section('custom_scripts')
+<script>
+    // Definimos la función en el ámbito global del navegador
+    function aplicarFiltro() {
+        var valorBusqueda = document.getElementById('filtroLotesInput').value;
+        var rutaIndex = "{{ route('plantacion.index') }}";
+
+        if (valorBusqueda) {
+            var url = rutaIndex + '?q=' + encodeURIComponent(valorBusqueda);
+            window.location.href = url;
+        } else {
+            window.location.href = rutaIndex;
+        }
+    }
+</script>
+@endsection
+
+
+
 @endsection
