@@ -7,43 +7,138 @@ use App\Models\Plantacion;
 use Illuminate\Support\Facades\DB;
 use App\Models\LlegadaPlanta;
 use App\Models\Operador;
+use Carbon\Carbon;
+
 
 class PlantacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
-        $plantaciones = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion'])->get();
+
         $filtro = $request->input('q');
 
-      
+        $meses_es = [
+            'ENERO' => 1,
+            'FEBRERO' => 2,
+            'MARZO' => 3,
+            'ABRIL' => 4,
+            'MAYO' => 5,
+            'JUNIO' => 6,
+            'JULIO' => 7,
+            'AGOSTO' => 8,
+            'SEPTIEMBRE' => 9,
+            'OCTUBRE' => 10,
+            'NOVIEMBRE' => 11,
+            'DICIEMBRE' => 12,
+            'ENE' => 1,
+            'FEB' => 2,
+            'MAR' => 3,
+            'ABR' => 4,
+            'MAY' => 5,
+            'JUN' => 6,
+            'JUL' => 7,
+            'AGO' => 8,
+            'SEP' => 9,
+            'OCT' => 10,
+            'NOV' => 11,
+            'DIC' => 12,
+        ];
+        $mes_buscado = strtoupper($filtro);
+        $mes_numero = $meses_es[$mes_buscado] ?? null;
+
+        $anio_actual = date('Y');
+
+       
         $query = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion']);
 
         if ($filtro) {
-            
-            $query->whereHas('loteLlegada.variedad', function ($q) use ($filtro) {
-            
-                $q->where('nombre', 'like', '%' . $filtro . '%')
-                    ->orWhere('codigo', 'like', '%' . $filtro . '%');
-            })->orWhereHas('operadorPlantacion', function ($q) use ($filtro) {
-              
-                $q->where('nombre', 'like', '%' . $filtro . '%');
+       
+            $query->where(function ($q) use ($filtro, $mes_numero, $anio_actual) {
+
+          
+                $q->whereHas('operadorPlantacion', function ($subq) use ($filtro) {
+                    $subq->where('nombre', 'like', '%' . $filtro . '%');
+                })
+                    ->orWhereHas('loteLlegada.variedad', function ($subq) use ($filtro) {
+                        $subq->where('nombre', 'like', '%' . $filtro . '%')
+                            ->orWhere('codigo', 'like', '%' . $filtro . '%');
+                    });
+
+               
+                $numericSearchTerm = null;
+
+         
+                if (str_contains(strtolower($filtro), 'lote') || is_numeric($filtro)) {
+                    if (preg_match('/\d+/', $filtro, $matches)) {
+                        $numericSearchTerm = $matches[0];
+                    }
+                }
+
+                
+                $q->orWhereHas('loteLlegada', function ($subq) use ($filtro, $mes_numero, $numericSearchTerm, $anio_actual) {
+
+                 
+                    $subq->where(function ($lotQuery) use ($filtro, $mes_numero, $numericSearchTerm, $anio_actual) {
+
+                        $hasLotFilter = false;
+
+                        if ($numericSearchTerm && is_numeric($numericSearchTerm)) {
+                            $lotQuery->where(function ($q) use ($numericSearchTerm) {
+                              
+                                $q->where('ID_Llegada', $numericSearchTerm);
+
+                                
+                                $q->orWhere(DB::raw('CEIL(DAYOFMONTH(Fecha_Llegada) / 7)'), '=', $numericSearchTerm);
+
+                                
+                                $q->orWhereYear('Fecha_Llegada', $numericSearchTerm)
+                                    ->orWhereMonth('Fecha_Llegada', $numericSearchTerm);
+                            });
+                            $hasLotFilter = true;
+                        }
+
+                       
+                        if ($mes_numero) {
+                    
+                            $method = $hasLotFilter ? 'orWhere' : 'where';
+
+                            $lotQuery->{$method}(function ($q) use ($mes_numero, $anio_actual) {
+                            
+                                $q->whereMonth('Fecha_Llegada', $mes_numero);
+                                $q->whereYear('Fecha_Llegada', $anio_actual);
+                            });
+
+                            $hasLotFilter = true;
+                        }
+                        if (!$hasLotFilter && str_contains(strtolower($filtro), 'semana')) {
+                            if (preg_match('/\d+/', $filtro, $matches)) {
+                                $weekNumber = $matches[0];
+
+                                $lotQuery->where(DB::raw('CEIL(DAYOFMONTH(Fecha_Llegada) / 7)'), '=', $weekNumber);
+                                $hasLotFilter = true;
+                            }
+                        }
+
+                        
+                        if (!$hasLotFilter) {
+                            $lotQuery->whereRaw('0 = 1');
+                        }
+                    });
+                });
             });
-    
         }
 
-  
-        $plantaciones_agrupadas = $query->get()->groupBy('ID_Llegada');
+
+        $plantaciones = $query->get();
+        $plantaciones_agrupadas = $plantaciones->groupBy('ID_Llegada');
 
         $ruta = route('aclimatacion.index');
         $texto_boton = "Volver a Aclimatación";
 
-        return view('plantacion.index', compact('plantaciones_agrupadas', 'filtro')) 
+        return view('plantacion.index', compact('plantaciones_agrupadas', 'filtro'))
             ->with(compact('ruta', 'texto_boton'));
     }
-
 
     public function show($id)
     {
