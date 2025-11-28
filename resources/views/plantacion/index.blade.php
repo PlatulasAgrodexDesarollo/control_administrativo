@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="container mt-4">
-    <h1>Registros de Plantación por Lote</h1>
+    <h1>Registros de Plantación por Lote del mes </h1>
 
     @if (session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
@@ -13,13 +13,13 @@
     @endif
     <div class="mb-4">
 
-  
+
         <div class="d-flex gap-2 mb-3">
 
             <input type="text"
                 id="filtroLotesInput"
                 class="form-control form-control-lg"
-                placeholder="Buscar por Variedad, Código o Nombre del Operador..."
+                placeholder="Buscar por Variedad, Código, Nombre del Operador, Mes o Semana..."
                 value="{{ $filtro ?? '' }}">
 
             <button type="button" onclick="aplicarFiltro()" class="btn btn-success flex-shrink-0">
@@ -62,7 +62,8 @@
         {{-- ENCABEZADO DE GRUPO (Información Consolidada) --}}
         <div class="card-header bg-secondary text-white">
             <h5 class="mb-0">
-                LOTE DE INVENTARIO: #{{ $id_lote }}
+               
+                LOTE DE INVENTARIO: <span class="fw-bold text-dark">{{ $lote->nombre_lote_semana ?? 'ID Lote #' . $id_lote }}</span>
                 <small>
                     {{ $variedad->nombre ?? 'N/A' }}
                     @if ($variedad && $variedad->codigo) [CÓDIGO: {{ $variedad->codigo }}] @endif
@@ -80,7 +81,7 @@
                 <table class="table table-striped table-clientes mb-0">
                     <thead>
                         <tr>
-                            <th>ID Reg.</th>
+                            
                             <th>Fecha</th>
                             <th>Sembradas</th>
                             <th>Pérdidas Totales</th>
@@ -93,9 +94,9 @@
                     <tbody>
                         @foreach ($plantaciones_del_lote as $p)
                         <tr>
-                            <td> {{ $p->ID_Plantacion }}</td>
+                          
                             <td>{{ \Carbon\Carbon::parse($p->Fecha_Plantacion)->format('d/m/Y') }}</td>
-                            
+
                             <td>{{ number_format($p->cantidad_sembrada, 0) }}</td>
 
                             {{-- Pérdida TOTAL (Suma de las categorías) --}}
@@ -115,7 +116,7 @@
 
                             <td>
                                 <a href="{{ route('plantacion.edit', $p->ID_Plantacion) }}" class="btn btn-sm btn-warning bi bi-pencil"></a>
-                                <a href="{{ route('plantacion.show', $p->ID_Plantacion) }}" class="btn btn-sm btn-info "> Ver</a>
+                                <a href="{{ route('plantacion.show', $p->ID_Plantacion) }}" class="btn btn-sm btn-info "> ver</a>
 
 
                             </td>
@@ -136,7 +137,7 @@
 
 @section('custom_scripts')
 <script>
-    // Definimos la función en el ámbito global del navegador
+
     function aplicarFiltro() {
         var valorBusqueda = document.getElementById('filtroLotesInput').value;
         var rutaIndex = "{{ route('plantacion.index') }}";
