@@ -20,82 +20,72 @@ class AclimatacionController extends Controller
      * Display a listing of the resource.
      */
     public function index()
+
     {
-
         $aclimataciones = Aclimatacion::with(['loteLlegada', 'variedad', 'operadorResponsable'])->get();
-
         $ruta = route('dashboard');
         $texto_boton = "Regresar a Módulos";
 
         return view('aclimatacion.index', compact('aclimataciones'))
+
             ->with(compact('ruta', 'texto_boton'));
     }
 
+public function create()
+{
+    $operadores = Operador::where('estado', 1)->get();
   
-    public function create()
-    {
-        $operadores = Operador::where('estado', 1)->get();
-
-        // 1. OBTENER TODAS LAS PLANTACIONES Y AGRUPAR POR LOTE DE LLEGADA (ID_Llegada)
-        $registros_plantacion = Plantacion::with(['variedad', 'loteLlegada']) 
-            ->get();
-
-        
-        $plantaciones_por_lote = $registros_plantacion->groupBy('ID_Llegada');
-
-        // 2. CONSOLIDAR EN UN ARRAY DE OPCIONES (Metricas del Lote)
-        $lotes_consolidados = [];
-
-        foreach ($plantaciones_por_lote as $id_llegada => $registros_del_lote) {
-
-            $lote_origen = $registros_del_lote->first()->loteLlegada; 
-           
-            $total_sembrado_acumulado = $registros_del_lote->sum('cantidad_sembrada');
-            $total_perdidas_acumulado = $registros_del_lote->sum('cantidad_perdida');
-            $stock_recibido = $lote_origen->Cantidad_Plantas; 
-            $stock_disponible = $stock_recibido - ($total_sembrado_acumulado + $total_perdidas_acumulado);
-
-            if ($stock_disponible >= 0) {
-                $lotes_consolidados[] = (object) [
-                    
-                    'id_llegada' => $id_llegada,
-                    'stock_recibido' => $stock_recibido,
-                    'total_sembrado' => $total_sembrado_acumulado,
-                    'total_perdidas' => $total_perdidas_acumulado,
-                    'stock_disponible' => $stock_disponible,
-                    'nombre_variedad' => $lote_origen->variedad->nombre ?? 'N/A',
-                    'codigo_variedad' => $lote_origen->variedad->codigo ?? 'N/A',
-
-                    'id_plantacion_fk' => $registros_del_lote->last()->ID_Plantacion,
-                ];
-            }
-        }
-
-        $ruta = route('aclimatacion.index');
-        $texto_boton = "Volver al Listado";
-
+    $registros_plantacion = Plantacion::with('loteLlegada.variedad') 
+        ->get();
     
-        return view('aclimatacion.create', compact('operadores', 'lotes_consolidados'))
-            ->with(compact('ruta', 'texto_boton'));
+    
+    $plantaciones_por_lote = $registros_plantacion->groupBy('ID_Llegada');
+
+    $lotes_id_disponibles = []; 
+    $data_calculada = [];     
+
+    foreach ($plantaciones_por_lote as $id_llegada => $registros_del_lote) {
+        $lote_origen = $registros_del_lote->first()->loteLlegada; 
+       
+        $total_sembrado_acumulado = $registros_del_lote->sum('cantidad_sembrada');
+        $total_perdidas_acumulado = $registros_del_lote->sum('cantidad_perdida');
+        $stock_recibido = $lote_origen->Cantidad_Plantas; 
+        
+      
+        $stock_disponible = $stock_recibido - ($total_sembrado_acumulado + $total_perdidas_acumulado);
+
+      
+        if ($stock_disponible > 0) { 
+            $lotes_id_disponibles[] = $id_llegada;
+
+           
+            $data_calculada[$id_llegada] = [
+                'stock_disponible' => $stock_disponible,
+            ];
+        }
     }
 
-    /**
-     * Muestra el detalle y gestión de una etapa.
-     */
+    $lotes_consolidados = LlegadaPlanta::with('variedad')
+        ->whereIn('ID_Llegada', $lotes_id_disponibles)
+        ->get();
+
+    $ruta = route('aclimatacion.index');
+    $texto_boton = "Volver al Listado";
+
+    return view('aclimatacion.create', compact('operadores', 'lotes_consolidados', 'data_calculada'))
+        ->with(compact('ruta', 'texto_boton'));
+}
+
 
     public function show(Aclimatacion $aclimatacion)
+
     {
-        
+
+
         $aclimatacion->load(['loteLlegada', 'variedad', 'operadorResponsable']);
-
-        // 1. OBTENER LA MERMA HISTÓRICA ACUMULADA DE SIEMBRA
         $id_lote = $aclimatacion->ID_Llegada;
-
-
         $merma_historica_lote = Plantacion::where('ID_Llegada', $id_lote)
             ->sum('cantidad_perdida');
-
-        // 2. CARGAR EL HISTORIAL DE CHEQUEOS AMBIENTALES
         $chequeos = ChequeoHyT::where('ID_Aclimatacion', $aclimatacion->ID_Aclimatacion)
             ->with('operadorResponsable')
             ->orderBy('Fecha_Chequeo', 'desc')
@@ -103,77 +93,62 @@ class AclimatacionController extends Controller
 
         $ruta = route('aclimatacion.index');
         $texto_boton = "Volver al Listado";
-
         $total_plantas_sembradas = Plantacion::where('ID_Llegada', $id_lote)
+
             ->sum('cantidad_sembrada');
-     
-
-
         $chequeos = ChequeoHyT::where('ID_Aclimatacion', $aclimatacion->ID_Aclimatacion)
             ->with('operadorResponsable')
             ->orderBy('Fecha_Chequeo', 'desc')
             ->get();
 
+
+
         $ruta = route('aclimatacion.index');
         $texto_boton = "Volver al Listado";
 
-       
         return view('aclimatacion.show', compact('aclimatacion', 'chequeos', 'merma_historica_lote', 'total_plantas_sembradas'))
+
             ->with(compact('ruta', 'texto_boton'));
     }
 
-
     public function cerrarEtapa(Request $request, Aclimatacion $aclimatacion)
+
     {
-        
 
-        $request->validate([
-            'merma_etapa' => 'required|integer|min:0',
-        ]);
+$total_sembrado_acumulado = \App\Models\Plantacion::where('ID_Llegada', $aclimatacion->ID_Llegada)
+        ->sum('cantidad_sembrada');
+    $merma_acumulada = $aclimatacion->merma_etapa ?? 0; 
+    $cantidad_pasante = $total_sembrado_acumulado - $merma_acumulada;
 
-        $merma_reportada = $request->merma_etapa;
-
-     
-        $stock_inicial_real = $aclimatacion->loteLlegada->Cantidad_Plantas ?? 0;
-
-     
-        $stock_inicial_real = (int) $stock_inicial_real;
-
-        // 1. Cálculo del Inventario Pasante
-        $cantidad_pasante = $stock_inicial_real - $merma_reportada;
-
-        // 2. Verificación de Merma
-        if ($cantidad_pasante < 0) {
-            return redirect()->back()->withErrors([
-                'merma_etapa' => 'Error: La merma reportada (' . number_format($merma_reportada) . ') excede la cantidad inicial del lote (' . number_format($stock_inicial_real) . ').'
-            ])->withInput();
-        }
-
-        // 3. Actualizar la Etapa de Aclimatación (Cierre)
-        $aclimatacion->update([
-            'fecha_cierre' => now(),
-            'merma_etapa' => $merma_reportada,
-            'cantidad_final' => $cantidad_pasante, 
-        ]);
-
-   
-
-        return redirect()->route('aclimatacion.show', $aclimatacion->ID_Aclimatacion)
-            ->with('success', '¡Etapa cerrada exitosamente! Se registró la merma.');
+    if ($cantidad_pasante < 0) {
+        return redirect()->back()->with('error', 'Error crítico: La merma acumulada (' . number_format($merma_acumulada) . ') excede el stock sembrado total.');
     }
- 
-    public function edit(string $id)
-    {
-      
-        return redirect()->route('aclimatacion.show', $id);
-    }
+
+    $lote_llegada = $aclimatacion->loteLlegada;
+    $lote_llegada->update([
+        'Cantidad_Plantas' => $cantidad_pasante, 
+    ]);
+
+  
+    $aclimatacion->update([
+        'fecha_cierre' => now(),
+        'cantidad_final' => $cantidad_pasante, 
+       
+    ]);
+
+    return redirect()->route('aclimatacion.show', $aclimatacion->ID_Aclimatacion)
+        ->with('success', '¡Etapa cerrada! El stock se actualizó con la merma acumulada.');
+}
 
 
 
     public function store(Request $request)
+
     {
-        // 1. VALIDACIÓN
+
+  
         $request->validate([
+
             'ID_Llegada' => 'required|exists:llegada_planta,ID_Llegada', // CRÍTICO: Debe ser ID_Llegada
             'Operador_Responsable' => 'required|exists:operadores,ID_Operador',
             'Fecha_Ingreso' => 'required|date',
@@ -182,34 +157,50 @@ class AclimatacionController extends Controller
             'Observaciones' => 'nullable|string',
         ]);
 
-        // 2. OBTENER EL LOTE DE LLEGADA (INVENTARIO ORIGEN)
-    
-        $llegada = \App\Models\LlegadaPlanta::find($request->ID_Llegada);
 
+
+        $llegada = \App\Models\LlegadaPlanta::find($request->ID_Llegada);
         if (!$llegada) {
             return redirect()->back()->withInput()->with('error', 'Lote de Llegada no encontrado.');
         }
 
-        // 3. OBTENER EL STOCK INICIAL DE LA ETAPA
-        
         $stock_inicial_para_aclimatacion = (int) $llegada->Cantidad_Plantas;
-
-        // 4. PREPARAR DATOS Y ASIGNAR FKs
         $data = $request->all();
-
         $data['ID_Llegada'] = $request->ID_Llegada;
-
-        
         $data['ID_Variedad'] = $llegada->ID_Variedad;
-
-       
         unset($data['ID_Plantacion']);
 
         $data['stock_inicial_etapa'] = $stock_inicial_para_aclimatacion;
-
-        
         \App\Models\Aclimatacion::create($data);
-
         return redirect()->route('aclimatacion.index')->with('success', 'Etapa de Aclimatación iniciada correctamente.');
     }
+    public function registrarMerma(Request $request, Aclimatacion $aclimatacion)
+{
+ 
+    if ($aclimatacion->fecha_cierre) {
+        return redirect()->back()->with('error', 'No se puede registrar merma: La etapa ya fue cerrada.');
+    }
+    
+    $request->validate([
+        'cantidad_merma' => 'required|integer|min:1',
+    ]);
+
+    $merma_reportada = $request->cantidad_merma;
+    $merma_acumulada_actual = $aclimatacion->merma_etapa ?? 0;
+    $merma_acumulada_nueva = $merma_acumulada_actual + $merma_reportada;
+
+
+    $total_sembrado = \App\Models\Plantacion::where('ID_Llegada', $aclimatacion->ID_Llegada)->sum('cantidad_sembrada');
+
+    if ($merma_acumulada_nueva > $total_sembrado) {
+         return redirect()->back()->with('error', 'La merma acumulada excede el stock sembrado total.');
+    }
+    
+ 
+    $aclimatacion->update([
+        'merma_etapa' => $merma_acumulada_nueva,
+    ]);
+
+    return redirect()->back()->with('success', 'Merma registrada. Pérdidas acumuladas: ' . number_format($merma_acumulada_nueva) . ' unidades.');
+}
 }
