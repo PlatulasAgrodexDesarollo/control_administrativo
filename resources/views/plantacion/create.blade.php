@@ -32,9 +32,8 @@
                 <option value="{{ $lote->ID_Llegada }}"
                     data-cantidad="{{ $lote->Cantidad_Plantas }}"
                     {{ old('ID_Llegada') == $lote->ID_Llegada ? 'selected' : '' }}>
-                    Lote #{{ $lote->ID_Llegada }}
-                    ({{ \Carbon\Carbon::parse($lote->Fecha_Llegada)->format('d/m/Y') }}) -
-                    {{ $lote->variedad->nombre ?? 'N/A' }}
+                  LOTE: {{ $lote->nombre_lote_semana ?? 'N/A' }} 
+                    - {{ $lote->variedad->nombre ?? 'N/A' }}
 
                     @if ($lote->variedad)
                     [CÓDIGO: {{ $lote->variedad->codigo ?? 'N/A' }}]
