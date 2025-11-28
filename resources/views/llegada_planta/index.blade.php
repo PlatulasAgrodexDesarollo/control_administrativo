@@ -21,6 +21,7 @@
                         <tr>
                             <th> ID</th>
                             <th>Fecha Llegada</th>
+                            <th>Identificador Semanal</th>
                             <th>Variedad</th>
                             <th>CÓDIGO</th>
                             <th>Cantidad</th>
@@ -33,10 +34,18 @@
                         <tr>
                             <td>{{ $lote->ID_Llegada }}</td>
                             <td>{{ \Carbon\Carbon::parse($lote->Fecha_Llegada)->format('d/m/Y') }}</td>
+                            <td>{{ $lote->nombre_lote_semana }}</td>
 
                             {{-- Nombre de Variedad --}}
-                            <td>{{ $lote->variedad->nombre ?? 'ERROR' }}</td>
+                            <td>
+                                {{ $lote->variedad->nombre ?? 'ERROR' }}
 
+                                @if ($lote->variedad && $lote->variedad->color)
+                                <br>
+                               
+                                <span class="text-muted small"> {{ $lote->variedad->color }}</span>
+                                @endif
+                            </td>
                             {{-- CÓDIGO (Accede a la Variedad a través de la relación) --}}
                             <td>{{ $lote->variedad->codigo ?? 'N/A' }}</td>
 
