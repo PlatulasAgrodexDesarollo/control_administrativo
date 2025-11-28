@@ -29,7 +29,7 @@
                     @foreach ($variedades as $variedad)
                     <option value="{{ $variedad->ID_Variedad }}" {{ old('ID_Variedad') == $variedad->ID_Variedad ? 'selected' : '' }}>
                         {{-- Muestra el NOMBRE y el CÓDIGO --}}
-                        {{ $variedad->nombre }} (Cód. {{ $variedad->codigo ?? 'N/A' }})
+                       {{ $variedad->nombre }} (Cód. {{ $variedad->codigo ?? 'N/A' }}) - Color: {{ $variedad->color ?? 'N/A' }}
                     </option>
                     @endforeach
                 </select>
