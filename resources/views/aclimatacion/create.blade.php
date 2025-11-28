@@ -14,8 +14,7 @@
     <form action="{{ route('aclimatacion.store') }}" method="POST">
         @csrf
 
-        {{-- 1. SELECCIÓN DE lote llegada --}}
-        {{-- Antes: <select name="ID_Plantacion" ...> --}}
+
 
         <div class="mb-3">
             <label for="ID_Llegada" class="form-label">Lote de Inventario a Aclimatación:</label>
@@ -23,13 +22,18 @@
                 <option value="">Seleccione un lote</option>
 
                 @foreach ($lotes_consolidados as $lote)
-                {{-- Asegúrate que el valor del option sea el ID del lote --}}
-                <option value="{{ $lote->id_llegada }}" {{ old('ID_Llegada') == $lote->id_llegada ? 'selected' : '' }}>
-                    Lote #{{ $lote->id_llegada }} |
-                    Variedad: {{ $lote->nombre_variedad }} | 
-                    Codigo: [{{ $lote->codigo_variedad }}] 
+                <option value="{{ $lote->ID_Llegada }}" {{ old('ID_Llegada') == $lote->ID_Llegada ? 'selected' : '' }}>
 
-                  
+                    LOTE: {{ $lote->nombre_lote_semana ?? 'N/A' }}
+
+                    - Var: {{ $lote->variedad->nombre ?? 'N/A' }}
+
+                    @if ($lote->variedad && $lote->variedad->color)
+                    (Color: {{ $lote->variedad->color }})
+                    @endif
+                    [CÓDIGO: {{ $lote->variedad->codigo ?? 'N/A' }}]
+
+
                 </option>
                 @endforeach
             </select>
