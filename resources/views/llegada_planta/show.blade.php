@@ -2,12 +2,18 @@
 
 @section('content')
 
-    <div class="container mt-4">
-        <h1>Detalle de planta Recibida #{{ $lote->ID_Llegada }}</h1>
+   <div class="container mt-4">
+        <h1>Detalle de planta Recibida </h1>
 
         <div class="card shadow">
+            
+           
             <div class="card-header">
                 <h5 class="mb-0">Información General</h5>
+               
+                <p class="text-muted mb-0">
+                 <span class="fw-bold text-info">{{ $lote->nombre_lote_semana }}</span>
+                </p>
             </div>
             <div class="card-body">
                 
