@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Models;
-
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,5 +32,25 @@ class LlegadaPlanta extends Model
     public function variedad()
     {
         return $this->belongsTo(Variedad::class, 'ID_Variedad', 'ID_Variedad');
+    }
+
+    protected function nombreLoteSemana(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+             
+                if (empty($attributes['Fecha_Llegada'])) {
+                    return 'Fecha N/D';
+                }
+                
+                $fecha = Carbon::parse($attributes['Fecha_Llegada']);
+                
+                
+                $semana_del_mes = $fecha->weekOfMonth; 
+                
+                return "Lote " . $semana_del_mes . 
+                       " (" . $fecha->format('M Y') . ")";
+            },
+        );
     }
 }
