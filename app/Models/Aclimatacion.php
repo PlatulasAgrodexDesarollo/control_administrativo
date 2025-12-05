@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\ChequeoHyT;
 
 class Aclimatacion extends Model
 {
@@ -17,30 +21,46 @@ class Aclimatacion extends Model
         'Fecha_Ingreso',
         'Estado_Inicial',
         'Duracion_Aclimatacion',
-        'fecha_cierre',         
-        'cantidad_final',       
+        'fecha_cierre',
+        'cantidad_final',
         'merma_etapa',
-        'ID_Llegada',
         'Observaciones',
-        'ID_Variedad',
         'Operador_Responsable'
     ];
 
-
-   public function loteLlegada()
+   
+    public function operadorResponsable(): BelongsTo
     {
-        
-        return $this->belongsTo(LlegadaPlanta::class, 'ID_Llegada', 'ID_Llegada');
+        return $this->belongsTo(\App\Models\Operador::class, 'Operador_Responsable', 'ID_Operador');
     }
 
-    public function variedad()
+   
+    public function lotesAclimatados(): BelongsToMany
     {
-        return $this->belongsTo(Variedad::class, 'ID_Variedad', 'ID_Variedad');
+        return $this->belongsToMany(
+            \App\Models\LlegadaPlanta::class,
+            'aclimatacion_variedad', 
+            'aclimatacion_id', 
+            'ID_llegada' 
+        )
+        ->withPivot('variedad_id', 'cantidad_plantas')
+        ->with('variedad');
     }
 
-
-    public function operadorResponsable()
+   
+    public function variedades(): BelongsToMany
     {
-        return $this->belongsTo(Operador::class, 'Operador_Responsable', 'ID_Operador');
+        return $this->belongsToMany(
+            \App\Models\Variedad::class,
+            'aclimatacion_variedad',
+            'aclimatacion_id',
+            'variedad_id'
+        )
+        ->withPivot('cantidad_plantas', 'ID_llegada');
     }
+    public function chequeos(): HasMany
+    {
+       
+    return $this->hasMany(ChequeoHyT::class, 'ID_Aclimatacion', 'ID_Aclimatacion');
+}
 }
