@@ -23,4 +23,15 @@ class Variedad extends Model
         'color',   
         'codigo',
     ];
+
+    public function aclimataciones()
+{
+    return $this->belongsToMany(
+        \App\Models\Aclimatacion::class,
+        'aclimatacion_variedad',
+        'variedad_id',      
+        'aclimatacion_id'   
+    )
+    ->withPivot('cantidad_plantas', 'ID_llegada');
+}
 }
