@@ -3,7 +3,7 @@
  @section('content')
 
  <div class="container mt-4">
-     <h1>Detalle de Registro de Plantación #{{ $registro->ID_Plantacion }}</h1>
+     <h1>Detalle de Registro de Plantación</h1>
 
      <div class="card shadow mb-4">
          <div class="card-header bg-primary text-white">
@@ -17,8 +17,10 @@
                      <h4>Detalles de Trazabilidad</h4>
                      <p><strong>Variedad:</strong> {{ $registro->variedad->nombre ?? 'N/A' }} ({{ $registro->variedad->codigo ?? 'N/A' }})</p>
                      <p><strong>Fecha de Plantación:</strong> {{ \Carbon\Carbon::parse($registro->Fecha_Plantacion)->format('d/m/Y') }}</p>
-                     <p><strong>Lote de Inventario (Origen):</strong> Lote #{{ $registro->loteLlegada->ID_Llegada ?? 'ERROR' }}</p>
-
+                     <p>
+                         <strong>Lote de Inventario (Origen):</strong>
+                         {{ $registro->loteLlegada->nombre_lote_semana ?? 'Lote #'.($registro->loteLlegada->ID_Llegada ?? 'N/A') }}
+                     </p>
 
                      <p><strong>Cantidad Inicial Recibida:</strong> <span class="badge bg-secondary">{{ number_format($registro->loteLlegada->Cantidad_Plantas ?? 0, 0) }}</span></p>
                  </div>
