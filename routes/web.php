@@ -50,7 +50,7 @@ Route::get('/plantacion', function () {
 //aclimatacion
 Route::get('/aclimatacion', function(){
     return "cargando modulo Control plagas...";
-})->name('control_plagas.index');
+})->name('aclimatacion.idex');
 
 
 
@@ -81,7 +81,7 @@ Route::put('/aclimatacion/{aclimatacion}/cerrar', [AclimatacionController::class
 
 
 Route::post('/aclimatacion/{aclimatacion}/registrar-merma', [AclimatacionController::class, 'registrarMerma'])->name('aclimatacion.registrar_merma');
-
+Route::post('aclimatacion/{aclimatacion}/registrar-merma-lote', [AclimatacionController::class, 'registrarMermaLote']) ->name('aclimatacion.registrar_merma_lote');
 
 
 Route::delete('operadores/{operador}/hard-delete', [OperadorController::class, 'hardDelete'])->name('operadores.hardDelete');
