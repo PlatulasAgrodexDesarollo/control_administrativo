@@ -53,4 +53,16 @@ class LlegadaPlanta extends Model
             },
         );
     }
+
+    public function aclimataciones()
+{
+    return $this->belongsToMany(
+        \App\Models\Aclimatacion::class,
+        'aclimatacion_variedad',
+        'ID_llegada',       
+        'aclimatacion_id'   
+    )
+    ->withPivot('variedad_id', 'cantidad_plantas')
+    ->with('variedad');
+}
 }
