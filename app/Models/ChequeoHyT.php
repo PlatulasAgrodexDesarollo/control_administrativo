@@ -23,7 +23,8 @@ class ChequeoHyT extends Model
         'Actividades',
         'Observaciones', 
         'ID_Aclimatacion',       
-        'Operador_Responsable' 
+        'Operador_Responsable',
+        'id_lote_llegada', 
     ];
 
    
@@ -37,4 +38,9 @@ class ChequeoHyT extends Model
     {
         return $this->belongsTo(Operador::class, 'Operador_Responsable', 'ID_Operador');
     }
+
+    public function loteLlegada()
+{
+    return $this->belongsTo(LlegadaPlanta::class, 'id_lote_llegada', 'ID_Llegada');
+}
 }
