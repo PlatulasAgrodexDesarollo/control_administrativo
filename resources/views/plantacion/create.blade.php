@@ -88,11 +88,7 @@
             @error('Operador_Plantacion') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
-        {{-- 7. OBSERVACIONES --}}
-        <div class="mb-3">
-            <label for="Observaciones" class="form-label">Observaciones:</label>
-            <textarea name="Observaciones" class="form-control">{{ old('Observaciones') }}</textarea>
-        </div>
+       
 
         <button type="submit" class="btn btn-success" id="btn-guardar">Guardar Plantación</button>
     </form>
