@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperadorController; 
 use App\Http\Controllers\VariedadController;
@@ -62,6 +63,8 @@ Route::get('chequeo_hyt/listado/{aclimatacion_id}', [App\Http\Controllers\Cheque
 Route::put('aclimatacion/cerrar/{aclimatacion}', [\App\Http\Controllers\AclimatacionController::class, 'cerrarEtapa'])->name('aclimatacion.cerrar');
 Route::put('aclimatacion/{aclimatacion}/cerrar', [AclimatacionController::class, 'cerrarEtapa']) ->name('aclimatacion.cerrar');
 
+
+
 Route::resource('operadores', OperadorController::class)  ->parameters(['operadores' => 'operador']);
 Route::resource('variedades', VariedadController::class) ->parameters(['variedades' => 'variedad']);
 Route::resource('llegada_planta', LlegadaPlantaController::class) ->parameters(['llegada_planta' => 'llegada_planta']);
@@ -82,6 +85,6 @@ Route::put('/aclimatacion/{aclimatacion}/cerrar', [AclimatacionController::class
 
 Route::post('/aclimatacion/{aclimatacion}/registrar-merma', [AclimatacionController::class, 'registrarMerma'])->name('aclimatacion.registrar_merma');
 Route::post('aclimatacion/{aclimatacion}/registrar-merma-lote', [AclimatacionController::class, 'registrarMermaLote']) ->name('aclimatacion.registrar_merma_lote');
-
+Route::post('chequeo_hyt/store', [ChequeoHyTController::class, 'store'])->name('chequeo_hyt.store');
 
 Route::delete('operadores/{operador}/hard-delete', [OperadorController::class, 'hardDelete'])->name('operadores.hardDelete');
