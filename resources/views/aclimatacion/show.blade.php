@@ -15,273 +15,293 @@
     @php
     use Carbon\Carbon;
 
-    // Fecha de inicio de la etapa
-    $fecha_inicio = Carbon::parse($aclimatacion->Fecha_Ingreso);
-
-    // Determinar la fecha de fin
-    $fecha_fin = $aclimatacion->fecha_cierre
-    ? Carbon::parse($aclimatacion->fecha_cierre)
-    : Carbon::now();
-
-    // Días reales transcurridos
-    $dias_reales = floor($fecha_inicio->diffInDays($fecha_fin));
-
-    // Duración esperada
-    $duracion_esperada=$aclimatacion->Duracion_Aclimatacion;
-
-    // Variables para el badge de estado
-    $clase_badge = 'bg-secondary';
-    $texto_status = '';
-
-    // Cálculos de diferencia
-    $dias_diferencia = abs($dias_reales - $duracion_esperada);
-    $dias_ahorro = floor($duracion_esperada - $dias_reales);
-    $dias_retraso = floor($dias_reales - $duracion_esperada);
+   
+    $lotes_aclimatados = $aclimatacion->lotesAclimatados;
+    
 
 
+   
+    $fecha_primer_registro = $aclimatacion->fecha_primer_registro_curso ?? $aclimatacion->Fecha_Ingreso;
+
+    $fecha_inicio_conteo = Carbon::parse($fecha_primer_registro);
+    $fecha_fin = $aclimatacion->fecha_cierre ? Carbon::parse($aclimatacion->fecha_cierre) : Carbon::now();
+    
+
+    $dias_reales = floor($fecha_inicio_conteo->diffInDays($fecha_fin));
+    
+  
+    if (!$aclimatacion->fecha_cierre && $fecha_inicio_conteo->isToday()) {
+        $dias_reales = 0;
+    }
+
+    // Clasificación de Status (Simplificada: Solo Activa/Finalizada)
     if ($aclimatacion->fecha_cierre) {
-    // Lógica de estado si la etapa está CERRADA
-    if ($dias_reales < $duracion_esperada) {
-        $clase_badge='bg-success' ;
-        $texto_status="Cerrado: Terminó antes (" . $dias_ahorro . " días restantes)" ;
-        } elseif ($dias_reales==$duracion_esperada) {
-        $clase_badge='bg-primary' ;
-        $texto_status="Cerrado: Justo a tiempo" ;
-        } else {
-        $clase_badge='bg-warning text-dark' ;
-        $texto_status="Cerrado: Retraso de " . $dias_retraso . " días" ;
-        }
-        } else {
-        // Lógica de estado si la etapa está ABIERTA (en curso)
-        if ($dias_reales> $duracion_esperada) {
-        $clase_badge = 'bg-danger';
-        $texto_status = "¡Tiempo excedido! (" . $dias_retraso . " días extra)";
-        } else {
+        $clase_badge = 'bg-success';
+        $texto_status = 'Finalizada';
+    } else {
         $clase_badge = 'bg-info';
-        $texto_status = "En curso (Faltan " . ($duracion_esperada - $dias_reales) . " días)";
-        }
-        }
-        @endphp
+        $texto_status = 'Activa';
+    }
+    
+    // --- CÁLCULOS DE INVENTARIO ---
+    // El stock inicial se suma del pivot
+    $stock_inicial_aclimatacion = $aclimatacion->lotesAclimatados->sum('pivot.cantidad_inicial_lote');
 
-        <div class="card shadow mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Resumen de la Plantación y Etapa</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Variedad:</strong> {{ $aclimatacion->variedad->nombre ?? 'N/A' }} (Cód. {{ $aclimatacion->variedad->codigo ?? 'N/A' }})</p>
-                        <p><strong>Fecha de Ingreso:</strong> {{ \Carbon\Carbon::parse($aclimatacion->Fecha_Ingreso)->format('d/m/Y') }}</p>
-                        <p><strong>Estado Inicial:</strong> {{ $aclimatacion->Estado_Inicial }}</p>
+    $merma_aclimatacion_acumulada = $aclimatacion->merma_etapa ?? 0;
 
-                        {{-- Lote de Inventario Original --}}
-                        <p>
-                            <strong>Lote de Llegada (Origen):</strong>
-                            {{ $aclimatacion->loteLlegada->nombre_lote_semana ?? 'Lote #'.($aclimatacion->loteLlegada?->ID_Llegada ?? 'N/A') }}
-                        </p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Registro de Plantación:</strong> {{ number_format($total_plantas_sembradas ?? 0, 0) }} und.</p>
-                        <p><strong>Duración Esperada:</strong> {{ $aclimatacion->Duracion_Aclimatacion }} días</p>
-                        <p class="mb-2"><strong>Días Reales en Etapa:</strong><span class="badge {{ $clase_badge }} fs-6">{{ $dias_reales }} días</span></p>
-                        <p class="mt-0 small text-muted">Status: {{ $texto_status }}</p>
-                        <p><strong>Responsable de Aclimatación:</strong> {{ $aclimatacion->operadorResponsable->nombre ?? 'N/A' }}</p>
-                    </div>
+    $inventario_pasante_calculado = $stock_inicial_aclimatacion - $merma_aclimatacion_acumulada;
+    
+   
+  
+    $total_merma_plantacion = $lotes_detallados->sum('merma_inicial_plantacion'); 
+    // --- FIN CÁLCULOS DE INVENTARIO ---
+
+    $meses_espanol_abr = [
+        1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May', 6 => 'Jun',
+        7 => 'Jul', 8 => 'Ago', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic'
+    ];
+    @endphp
+
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Resumen de la Etapa</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Fecha de Ingreso a Etapa:</strong> {{ \Carbon\Carbon::parse($aclimatacion->Fecha_Ingreso)->format('d/m/Y') }}</p>
+                    <p><strong>Fecha de Inicio de Conteo:</strong> {{ $fecha_inicio_conteo->format('d/m/Y') }}</p>
+                    <p><strong>Responsable:</strong> {{ $aclimatacion->operadorResponsable->nombre ?? 'N/A' }}</p>
+
+                    <h6 class="mt-4 mb-2">Lotes y Variedades </h6>
+                    <ul class="list-unstyled border p-2 rounded">
+
+                        @foreach ($lotes_aclimatados as $lote)
+                        @php
+                       
+                        $fecha_carbon = Carbon::parse($lote->Fecha_Ingreso);
+                        $abr_espanol = $meses_espanol_abr[$fecha_carbon->month];
+                        $fecha_espanol_manual = $abr_espanol . ' ' . $fecha_carbon->year;
+
+                        $nombre_lote_traducido = $lote->nombre_lote_semana ?? 'N/A';
+                        $patron_mes_anio = '/\b[A-Za-z]{3,}\s\d{4}\b/';
+
+                        $nombre_lote_traducido = preg_replace(
+                            $patron_mes_anio,
+                            $fecha_espanol_manual,
+                            $nombre_lote_traducido
+                        );
+
+                        $estado_lote = $lote->pivot->Estado_Inicial_Lote ?? 'Sin Estado';
+
+                        $clase_estado = match ($estado_lote) {
+                            'Normal' => 'bg-primary',
+                            'Contaminada' => 'bg-danger',
+                            'Debil' => 'bg-warning text-dark',
+                            default => 'bg-secondary',
+                        };
+                        @endphp
+
+                        <li class="small mb-1">
+                            <i class="bi bi-tag"></i>
+                            <strong>{{ $nombre_lote_traducido }}</strong>
+                            <span class="badge {{ $clase_estado }} me-2">{{ $estado_lote }}</span>
+
+
+                            Var:{{ $lote->variedad->nombre ?? 'N/A' }}
+                            <span class="badge bg-light text-dark">Cód: {{ $lote->variedad->codigo ?? 'N/A' }}</span>
+                            <span class="badge bg-light text-dark">{{ number_format($lote->pivot->cantidad_plantas) }} und.</span>
+
+                        </li>
+                        @if (!$loop->last)
+                        <hr class="my-1">
+                        @endif
+                        @endforeach
+                    </ul>
+                </div>
+                <div class="col-md-6 border-start ps-4">
+                    {{-- Esta línea usa el cálculo corregido: la suma de la cantidad inicial de lotes --}}
+                    <p><strong>Total Unidades Ingresadas:</strong> {{ number_format($stock_inicial_aclimatacion, 0) }} und.</p>
+                    <p><strong>Merma Acumulada de Aclimatación:</strong> <span class="badge bg-danger fs-6">{{ number_format($merma_aclimatacion_acumulada, 0) }} und.</span></p>
+
+                    <hr>
+
+                    <p class="mb-2"><strong>Días Reales en Etapa:</strong> <span class="badge {{ $clase_badge }} fs-6">{{ $dias_reales }} días</span></p>
+                    <p class="mt-0 small text-muted">Status: **{{ $texto_status }}**</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <h2 class="h4 mt-5">Historial de Chequeos Ambientales (H/T)</h2>
+    
+    {{--- 2. BLOQUE DE MERMA Y CIERRE DE ETAPA ---}}
+<h2 class="h4 mt-5">Control de Inventario y Cierre de Etapa</h2>
 
+@if ($aclimatacion->fecha_cierre)
+    {{-- 1. BLOQUE CUANDO LA ETAPA ESTÁ CERRADA --}}
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+            <h5><i class="bi bi-check-circle"></i> Etapa Cerrada</h5>
+        </div>
+        <div class="card-body">
+            
+            {{-- RESUMEN GENERAL --}}
+            <p><strong>Fecha de Cierre:</strong> {{ \Carbon\Carbon::parse($aclimatacion->fecha_cierre)->format('d/m/Y H:i') }}</p>
+            <p><strong>Stock Inicial Global (Aclimatación):</strong> {{ number_format($stock_inicial_aclimatacion) }} unidades</p>
+            
+            <hr class="my-2">
+            
+          
+            <p class="text-danger small mb-1">
+                **Merma Acumulada (Plantación):** {{ number_format($total_merma_plantacion) }} unidades
+            </p>
+            <p class="text-danger fs-6">
+                **Merma Acumulada (Aclimatación):** {{ number_format($merma_aclimatacion_acumulada) }} unidades
+            </p>
+            
+            <hr class="my-2">
+            
+            <p class="text-primary fs-5"><strong>Stock Pasante Final:</strong> {{ number_format($inventario_pasante_calculado) }} unidades</p>
 
-        @if (!$aclimatacion->fecha_cierre)
-        <div class="mb-4">
-            <a href="{{ route('chequeo_hyt.create', ['aclimatacion_id' => $aclimatacion->ID_Aclimatacion]) }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Registrar Nuevo Chequeo
-            </a>
+            <hr class="my-3">
+
+            
+            <h6 class="mt-4 mb-2">Inventario Final por Lote:</h6>
+            
+            <ul class="list-unstyled border p-3 rounded bg-light">
+                @php
+                    $lotes_activos = $lotes_detallados->filter(fn($lote) => ($lote['cantidad_ingresada'] ?? 0) > 0);
+                @endphp
+
+                @if ($lotes_activos->isEmpty())
+                    <li class="text-danger small">No se encontraron lotes activos con inventario en esta etapa.</li>
+                @else
+                    @foreach ($lotes_activos as $lote)
+                        @php
+                            $stock_final_lote = ($lote['cantidad_ingresada'] ?? 0) - ($lote['merma_acumulada_lote'] ?? 0);
+                            $merma_aclimatacion = $lote['merma_acumulada_lote'] ?? 0;
+                            $merma_plantacion = $lote['merma_inicial_plantacion'] ?? 0; // Usando el nuevo campo
+                            $stock_color = $stock_final_lote > 0 ? 'text-success' : 'text-danger';
+                        @endphp
+                        <li class="small py-1 border-bottom d-flex justify-content-between">
+                            <div>
+                                <strong class="text-dark">{{ $lote['nombre'] }}</strong> 
+                                <span class="text-muted fst-italic">({{ $lote['variedad_nombre'] }})</span>
+                            </div>
+                            <div class="text-end small">
+                                **Merma Plantación:** <span class="fw-bold text-danger me-2">{{ number_format($merma_plantacion) }} und.</span> 
+                                **Merma Aclimatación:** <span class="fw-bold text-danger me-2">{{ number_format($merma_aclimatacion) }} und.</span>
+                                **Stock Final:** <span class="fw-bold {{ $stock_color }}">{{ number_format($stock_final_lote) }} und.</span>
+                            </div>
+                        </li>
+                    @endforeach
+                @endif
+            </ul>
+        </div>
+    </div>
+
+@else
+    {{-- 2. BLOQUE CUANDO LA ETAPA ESTÁ ABIERTA --}}
+
+  
+    <div class="card shadow p-2 mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5><i class="bi bi-x-octagon"></i> Registro de Pérdidas por Lote (Merma)</h5>
+        </div>
+
+        @if ($lotes_detallados->isEmpty())
+            <p class="p-3 mb-0 text-danger">Error: No se encontraron lotes para esta etapa.</p>
+        @else
+
+        <div class="card-body">
+            <p class="small text-muted mb-4">
+                El stock total inicial de la etapa fue de <strong>{{ number_format($stock_inicial_aclimatacion, 0) }}</strong> unidades.
+                <br>Merma Total Acumulada en la Etapa: <strong class="text-danger">{{ number_format($merma_aclimatacion_acumulada ?? 0, 0) }}</strong> unidades.
+            </p>
+
+            {{-- INICIO DEL CONTENEDOR CON SCROLL --}}
+            <div class="lotes-merma-scroll" style="max-height: 350px; overflow-y: auto; padding-right: 15px;"> 
+
+                @foreach ($lotes_detallados as $lote)
+                @php
+                   
+                    $cantidad_ingresada_lote = $lote['cantidad_ingresada'] ?? 0;
+                    $merma_acumulada_aclimatacion = $lote['merma_acumulada_lote'] ?? 0; // Merma de aclimatación
+                    $merma_plantacion = $lote['merma_inicial_plantacion'] ?? 0; // Merma de plantación
+                    $stock_restante_lote = $cantidad_ingresada_lote - $merma_acumulada_aclimatacion;
+                    
+                  
+                    $fecha_a_usar = $lote['Fecha_Ingreso'] ?? $aclimatacion->Fecha_Ingreso;
+                    $fecha_carbon_lote = \Carbon\Carbon::parse($fecha_a_usar);
+                    $abr_espanol = $meses_espanol_abr[$fecha_carbon_lote->month];
+                    $fecha_espanol_manual = $abr_espanol . ' ' . $fecha_carbon_lote->year;
+                    $nombre_lote_traducido = $lote['nombre'] ?? 'Lote N/A';
+                    $patron_mes_anio = '/\b[A-Za-z]{3,}\s\d{4}\b/';
+                    $nombre_lote_traducido = preg_replace($patron_mes_anio, $fecha_espanol_manual, $nombre_lote_traducido);
+                @endphp
+                <div class="border p-3 mb-3 rounded">
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <h6 class="mb-1">{{ $nombre_lote_traducido }}</h6> 
+                            <p class="small text-muted mb-0">
+                                Var: {{ $lote['variedad_nombre'] }} /
+                                <span>Cód: {{ $lote['variedad_codigo'] ?? 'N/A' }}</span>
+                                /Inicial: {{ number_format($cantidad_ingresada_lote) }} und.
+                            </p>
+                            
+                           
+                            <p class="small mb-1 text-danger">
+                                Merma Inicial (Plantación): <strong>{{ number_format($merma_plantacion) }} und.</strong>
+                            </p>
+
+                            <p class="small mb-0 
+                                @if ($merma_acumulada_aclimatacion > 0) text-danger @else text-muted @endif">
+                                Merma Acumulada Aclimatación: <strong>{{ number_format($merma_acumulada_aclimatacion) }} und.</strong>
+                            </p>
+                            <p class="small mb-0 text-primary">
+                                Stock Restante Lote: <strong>{{ number_format($stock_restante_lote) }} und.</strong>
+                            </p>
+
+                        </div>
+
+                        <div class="col-md-7">
+                            <form action="{{ route('aclimatacion.registrar_merma_lote', $aclimatacion->ID_Aclimatacion) }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="lote_id" value="{{ $lote['ID_Llegada'] }}">
+
+                                <div class="input-group">
+                                    <input type="number" name="cantidad_merma" class="form-control" placeholder="Cant. perdida" required min="1" max="{{ $stock_restante_lote }}">
+                                    <button type="submit" class="btn btn-warning">Registrar Merma</button>
+                                </div>
+                                @error('cantidad_merma') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+
+            </div>
+            {{-- FIN DEL CONTENEDOR CON SCROLL --}}
+
         </div>
         @endif
+    </div>
 
-        <div class="card shadow">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                
-                                <th>Fecha</th>
-                                <th>Hora</th>
-                                <th>Temp (°C)</th>
-                                <th>Humedad (Hr)</th>
-                                <th>Luz (Lux)</th>
-                                <th>Acciones Registradas</th>
-                                <th>Operador</th>
-
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($chequeos as $c)
-                            <tr>
-                                
-                                <td>{{ \Carbon\Carbon::parse($c->Fecha_Chequeo)->format('d/m/Y') }} </td>
-                                <td>{{ \Carbon\Carbon::parse($c->Hora_Chequeo)->format('H:i A') }}</td>
-                                <td>{{ $c->Temperatura }}°C</td>
-                                <td>{{ $c->Hr }}%</td>
-                                <td>{{ $c->Lux }}</td>
-                                <td>{{ $c->Actividades }}</td>
-                                <td>{{ $c->operadorResponsable->nombre ?? 'N/A' }}</td>
-
-                            </tr>
-                            @endforeach
-
-                            @if($chequeos->isEmpty())
-                            <tr>
-                                <td colspan="8" class="text-center">No hay chequeos registrados para esta etapa.</td>
-                            </tr>
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    {{-- CIERRE DE ETAPA (General) --}}
+    <div class="card shadow p-4 mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5><i class="bi bi-box-arrow-right"></i> Cierre y Finalización de Etapa (General)</h5>
         </div>
-        <h2 class="h4 mt-5">Control de Inventario y Cierre de Etapa</h2>
-
-        @php
-        // La merma acumulada de Aclimatación se lee directamente del campo del modelo.
-        // Esto es lo que el método registrarMerma debe actualizar.
-        $merma_aclimatacion_acumulada = $aclimatacion->merma_etapa ?? 0;
-
-        // Stock inicial real es el total de plantas sembradas (viene del controlador)
-        $stock_inicial_aclimatacion = $total_plantas_sembradas ?? 0;
-
-        // Merma de siembra (Viene del controlador)
-        $merma_siembra = $merma_historica_lote ?? 0;
-
-        // Si la etapa está cerrada, usamos la merma ya guardada en el cierre. Si no, usamos la acumulada.
-        $merma_final_cierre = $aclimatacion->fecha_cierre ? $aclimatacion->merma_etapa : $merma_aclimatacion_acumulada;
-
-        // Cálculo del Inventario Pasante (Stock Sembrado - Merma de Aclimatación)
-        $inventario_pasante_calculado = $stock_inicial_aclimatacion - $merma_final_cierre;
-
-        // Merma total del Lote hasta este punto (Siembra + Aclimatación)
-        $merma_total_acumulada = $merma_siembra + $merma_final_cierre;
-
-        // --- Cálculo de Tiempo (Se mantiene igual) ---
-        $fecha_inicio = \Carbon\Carbon::parse($aclimatacion->Fecha_Ingreso);
-        $fecha_fin = $aclimatacion->fecha_cierre ? \Carbon\Carbon::parse($aclimatacion->fecha_cierre) : \Carbon\Carbon::now();
-        $dias_reales = floor($fecha_inicio->diffInDays($fecha_fin));
-        $duracion_esperada = $aclimatacion->Duracion_Aclimatacion;
-        $diferencia = $duracion_esperada - $dias_reales;
-        $dias_restantes = max(0, $diferencia);
-        $dias_retraso = max(0, -$diferencia);
-
-        if ($aclimatacion->fecha_cierre) {
-        if ($dias_reales < $duracion_esperada) {
-            $clase_badge='bg-success' ;
-            $texto_status="Cerrado: Terminó antes (" . $dias_restantes . " días de ahorro)" ;
-            } elseif ($dias_reales==$duracion_esperada) {
-            $clase_badge='bg-primary' ;
-            $texto_status="Cerrado: Justo a tiempo" ;
-            } else {
-            $clase_badge='bg-warning text-dark' ;
-            $texto_status="Cerrado: Retraso de " . $dias_retraso . " días" ;
-            }
-            }
-            @endphp
-
-            @if ($aclimatacion->fecha_cierre)
-            {{-- 1. BLOQUE CUANDO LA ETAPA ESTÁ CERRADA --}}
-            <div class="card shadow mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> ETAPA CERRADA (Auditoría Final)</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-borderless mb-0">
-                            <tr>
-                                <td style="width: 30%;"><strong>Stock Inicial (Sembrado):</strong></td>
-                                <td><span class="badge bg-success fs-6">{{ number_format($stock_inicial_aclimatacion, 0) }} und.</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width: 30%; color: orange;"><strong>Primera merma acumulada (plantación):</strong></td>
-                                <td><span class="badge bg-warning fs-6">{{ number_format($merma_siembra, 0) }} und.</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width: 30%; color:gray"><strong>Segunda merma Acumulada (Aclimatación):</strong></td>
-                                <td><span class="badge bg-secondary fs-6">{{ number_format($merma_final_cierre, 0) }} und.</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width: 30%;"><strong>Inventario Final Pasante:</strong></td>
-                                <td><span class="badge bg-primary fs-6">{{ number_format($inventario_pasante_calculado, 0) }} und.</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width: 30%;"><strong>Merma Total Lote:</strong></td>
-                                <td><span class="badge bg-info fs-6">{{ number_format($merma_total_acumulada, 0) }} und.</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width: 30%;"><strong>Fecha de Cierre:</strong></td>
-                                <td>{{ \Carbon\Carbon::parse($aclimatacion->fecha_cierre)->format('d/m/Y') }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <p class="mt-3 mb-0 small text-muted">Este inventario final está listo para ser transferido a la siguiente etapa.</p>
-                </div>
-            </div>
-            @else
-            {{-- 2. BLOQUE CUANDO LA ETAPA ESTÁ ABIERTA --}}
-            <div class="card shadow p-2 mb-4">
-                <div class="card-header bg-light">
-                    <h5><i class="bi bi-x-octagon"></i> Registro de Pérdidas</h5>
-                </div>
-                {{-- INFO ACUMULADA --}}
-                <p class="small text-muted"> planata sembrada:<strong>{{ number_format($stock_inicial_aclimatacion ?? 0, 0) }}</strong> unidades.</p>
-                <p class="small text-muted">Merma nueva:<strong class="text-danger">{{ number_format($merma_aclimatacion_acumulada ?? 0, 0) }}</strong> unidades.</p>
-
-                {{-- REGISTRO DE MERMA INDEPENDIENTE --}}
-
-                <div class="card-body">
-                    <form action="{{ route('aclimatacion.registrar_merma', $aclimatacion->ID_Aclimatacion) }}" method="POST">
-                        @csrf
-
-                        <div class="row">
-                            <div class="col-12 mb-4">
-                                <label for="cantidad_merma" class="form-label">Plantas perdidas:</label>
-                                <input type="number" name="cantidad_merma" class="form-control" required min="1" value="{{ old('cantidad_merma') }}">
-                                @error('cantidad_merma') <div class="text-danger">{{ $message }}</div> @enderror
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12 mb-2">
-                                <button type="submit" class="btn btn-warning w-100">Registrar Merma</button>
-                            </div>
-                        </div>
-
-                    </form>
-                </div>
-            </div>
-
-
-            {{-- CIERRE DE ETAPA --}}
-            <div class="card shadow p-4 mb-4">
-                <div class="card-header bg-light">
-                    <h5><i class="bi bi-x-octagon"></i> Cierre y Finalización de Etapa</h5>
-                </div>
-
-                <div class="card-body">
-                    <p class="small text-muted">Al cerrar, se utiliza la merma acumulada actual ({{ number_format($merma_aclimatacion_acumulada ?? 0, 0) }} und.) para calcular el inventario final pasante.</p>
-
-                    <form action="{{ route('aclimatacion.cerrar', $aclimatacion->ID_Aclimatacion) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('ATENCIÓN: ¿Desea cerrar la etapa y auditar la merma? Esta acción es definitiva.');">
-                            CERRAR ETAPA
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            @endif
-
-            @endsection 
+        <div class="card-body">
+            <p class="small text-muted">Stock actual estimado a pasar a la siguiente etapa: <strong class="text-primary">{{ number_format($inventario_pasante_calculado ?? 0, 0) }}</strong> unidades.</p>
+            <form action="{{ route('aclimatacion.cerrar', $aclimatacion->ID_Aclimatacion) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <button type="submit" class="btn btn-danger" onclick="return confirm('ATENCIÓN: ¿Desea cerrar la etapa? Esta acción es definitiva y finaliza el registro de merma.');">
+                    CERRAR ETAPA Y PASAR INVENTARIO
+                </button>
+            </form>
+        </div>
+    </div>
+@endif 
+@endsection
