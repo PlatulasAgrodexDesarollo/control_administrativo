@@ -19,7 +19,7 @@
                 <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
-                            <th> ID</th>
+                            
                             <th>Fecha Llegada</th>
                             <th>Identificador Semanal</th>
                             <th>Variedad</th>
@@ -32,7 +32,7 @@
                     <tbody>
                         @foreach ($lotes_llegada as $lote)
                         <tr>
-                            <td>{{ $lote->ID_Llegada }}</td>
+                            
                             <td>{{ \Carbon\Carbon::parse($lote->Fecha_Llegada)->format('d/m/Y') }}</td>
                             <td>{{ $lote->nombre_lote_semana }}</td>
 
