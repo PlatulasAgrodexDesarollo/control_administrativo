@@ -45,8 +45,7 @@
              <p><strong>Operador de Plantación:</strong> {{ $registro->operadorPlantacion->nombre ?? 'N/A' }} ({{ $registro->operadorPlantacion->puesto ?? 'N/A' }})</p>
              <p><strong>Operador que Recibió el Lote:</strong> {{ $registro->operadorLlegada->nombre ?? 'N/A' }}</p>
 
-             <h6>Observaciones de la Tarea:</h6>
-             <p class="text-muted">{{ $registro->Observaciones ?? 'Sin observaciones.' }}</p>
+           
          </div>
      </div>
 
