@@ -7,9 +7,9 @@ use App\Http\Controllers\OperadorController;
 use App\Http\Controllers\VariedadController;
 use App\Http\Controllers\LlegadaPlantaController;
 use App\Http\Controllers\PlantacionController;
-use App\Http\Controllers\ControlPlagasController;
+//use App\Http\Controllers\ControlPlagasController;
 use App\Http\Controllers\AclimatacionController;
-use App\Http\Controllers\ChequeoHyTController;
+//use App\Http\Controllers\ChequeoHyTController;
 use App\Http\Controllers\EndurecimientoController;
 use App\Http\Controllers\RecuperacionMermaController;
 
