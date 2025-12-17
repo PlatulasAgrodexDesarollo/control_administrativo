@@ -30,8 +30,6 @@
                 </p>
                 
                 <hr>
-                <h6>Observaciones:</h6>
-                <p class="text-muted">{{ $lote->Observaciones ?? 'Sin observaciones.' }}</p>
             </div>
         </div>
         
