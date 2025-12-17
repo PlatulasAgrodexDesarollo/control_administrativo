@@ -3,7 +3,7 @@
 @section('content')
 
     <div class="container mt-4">
-        <h1>Editar Registro de Plantación N°{{ $plantacion->ID_Plantacion }}</h1>
+        <h1>Editar Registro de Plantación</h1>
 
         @if ($errors->any())
             <div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
@@ -70,11 +70,7 @@
                 </select>
             </div>
 
-            {{-- 7. OBSERVACIONES --}}
-            <div class="mb-3">
-                <label for="Observaciones" class="form-label">Observaciones:</label>
-                <textarea name="Observaciones" class="form-control">{{ old('Observaciones', $plantacion->Observaciones) }}</textarea>
-            </div>
+            
 
             <button type="submit" class="btn btn-success">Guardar Cambios</button>
         </form>
