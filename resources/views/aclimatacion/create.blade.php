@@ -47,12 +47,6 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
             @error('Estado_Inicial') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
-        {{-- 4. DURACIÓN (Días) --}}
-        <div class="mb-3">
-            <label for="Duracion_Aclimatacion" class="form-label">Duración Esperada (Días):</label>
-            <input type="number" name="Duracion_Aclimatacion" class="form-control" required value="{{ old('Duracion_Aclimatacion') }}" min="1">
-            @error('Duracion_Aclimatacion') <div class="text-danger">{{ $message }}</div> @enderror
-        </div>
 
         {{-- 5. SELECCIÓN DE OPERADOR (FK) --}}
         <div class="mb-3">
