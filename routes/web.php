@@ -96,5 +96,11 @@ Route::delete('operadores/{operador}/hard-delete', [OperadorController::class, '
 
 
 
-    
+    Route::prefix('endurecimiento')->group(function () {
+    Route::get('/', [EndurecimientoController::class, 'index'])->name('endurecimiento.index');
+    Route::get('/create', [EndurecimientoController::class, 'create'])->name('endurecimiento.create');
+    Route::post('/store', [EndurecimientoController::class, 'store'])->name('endurecimiento.store');
+    Route::get('/{endurecimiento}', [EndurecimientoController::class, 'show'])->name('endurecimiento.show');
+    Route::post('/{endurecimiento}/merma', [EndurecimientoController::class, 'registrarMerma'])->name('endurecimiento.registrar_merma');
+});
     
