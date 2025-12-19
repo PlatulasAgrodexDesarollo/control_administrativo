@@ -80,7 +80,6 @@ $meses_espanol_abr = [1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May'
                                 <th>Origen y Variedades</th>
                                 <th>Total Und.</th>
                                 <th>Estado</th>
-                                {{-- COLUMNA ELIMINADA: <th>Duración Est.</th> --}}
                                 <th>Responsable</th>
                                 <th>Acciones</th>
                             </tr>
