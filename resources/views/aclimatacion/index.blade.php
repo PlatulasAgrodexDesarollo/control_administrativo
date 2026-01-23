@@ -71,149 +71,109 @@ $meses_espanol_abr = [1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May'
 
 
         <div class="card shadow">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered align-middle">
-                        <thead>
-                            <tr>
-                                <th>Fecha Ingreso</th>
-                                <th>Origen y Variedades</th>
-                                <th>Total Und.</th>
-                                <th>Estado</th>
-                                <th>Responsable</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($aclimataciones as $a)
-                            <tr>
-                                {{-- Fecha Ingreso Global --}}
-                                <td>{{ Carbon::parse($a->Fecha_Ingreso)->format('d/m/Y') }}</td>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha Ingreso</th>
+                        <th>Origen y Variedades</th>
+                        <th>Total Und. Sembradas</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($aclimataciones as $a)
+                    <tr>
+                        {{-- Fecha Ingreso Global --}}
+                        <td>{{ Carbon::parse($a->Fecha_Ingreso)->format('d/m/Y') }}</td>
 
-                                {{-- COLUMNA CONSOLIDADA DE LOTES Y VARIEDADES (Consolida la información) --}}
-                                <td>
-                                    @php
-                                        // **CORRECCIÓN DE ERROR:** Definición de la variable aquí (Línea 1 del bloque @php)
-                                        $total_unidades_iniciales = $a->lotesAclimatados->sum('pivot.cantidad_plantas');
-
-
-                                        $lote_referencia = $a->lotesAclimatados->first();
-
-                                        $variedades_resumen = $a->lotesAclimatados
-                                        ->groupBy('variedad.nombre') 
-                                        ->map(function ($lotes) {
-                                            return [
-                                            'nombre' => $lotes->first()->variedad->nombre ?? 'N/A',
-                                            'cantidad_total' => $lotes->sum('pivot.cantidad_plantas'),
-                                            ];
-                                        });
-
-                                        $nombre_lote_traducido = 'N/A';
-
-                                        if ($lote_referencia) {
-                                        // Lógica de Traducción de Fecha 
-                                        $fecha_carbon = Carbon::parse($lote_referencia->Fecha_Ingreso);
-                                        $abr_espanol = $meses_espanol_abr[$fecha_carbon->month];
-                                        $fecha_espanol_manual = $abr_espanol . ' ' . $fecha_carbon->year;
-
-                                        // TRADUCIR EL NOMBRE DEL LOTE DE REFERENCIA
-                                        $nombre_lote_traducido = $lote_referencia->nombre_lote_semana ?? 'N/A';
-                                        $patron_mes_anio = '/\b[A-Za-z]{3,}\s\d{4}\b/';
-
-                                        $nombre_lote_traducido = preg_replace(
-                                        $patron_mes_anio,
-                                        $fecha_espanol_manual,
-                                        $nombre_lote_traducido
-                                        );
-                                        }
-                                    @endphp
-
-                                    @if ($lote_referencia)
-                                    <div class="d-flex flex-column">
-                                        {{-- LOTE DE REFERENCIA (Nombre y Fecha) --}}
-                                        <strong class=" small mb-1">{{ $nombre_lote_traducido }}</strong>
-
-                                        {{-- RESUMEN DE VARIEDADES (Lista concisa) --}}
-                                        <ul class="list-unstyled small mb-0">
-                                            @foreach ($variedades_resumen as $v)
-                                            <li class="d-flex justify-content-between">
-                                                <span class="text-muted">Var. {{ $v['nombre'] }}:</span>
-                                                <span class="fw-bold">{{ number_format($v['cantidad_total']) }} und.</span>
-                                            </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                    @else
-                                    <span class="text-danger small">Lotes no asignados</span>
-                                    @endif
-                                </td>
-
-
-
-                                {{-- TOTAL GLOBAL (Ahora la variable está definida) --}}
-                                <td>
-                                    <span class="fw-bold text-primary">{{ number_format($total_unidades_iniciales) }}</span>
-                                </td>
-
-
-                                <td>
-                                    @php
-                                    // Obtener los estados únicos de todos los lotes de la colección pivot
-                                    $estados = $a->lotesAclimatados->pluck('pivot.Estado_Inicial_Lote')->unique();
-                                    @endphp
-
-                                    @if ($estados->isEmpty())
-                                    <span class="badge bg-danger">Sin estado</span>
-                                    @elseif ($estados->count() === 1)
-
-                                    @php
-                                    $estado_unico = $estados->first();
-                                    // Asignación de color de badge basado en el estado
-                                    $badge_class = match ($estado_unico) {
-                                    'Normal' => 'bg-primary',
-                                    'Contaminada' => 'bg-danger',
-                                    'Debil' => 'bg-warning text-dark',
-                                    default => 'bg-secondary',
-                                    };
-                                    @endphp
-                                    <span class="badge {{ $badge_class }}">
-                                        {{ $estado_unico }}
-                                    </span>
-                                    @else
-
-                                    <span class="badge bg-secondary"
-                                        data-bs-toggle="tooltip"
-                                        data-bs-placement="top"
-                                        title="Estados: {{ $estados->implode(', ') }}">
-                                        Múltiple ({{ $estados->count() }})
-                                    </span>
-                                    @endif
-                                </td>
-
-                                {{-- CELDA ELIMINADA: <td>{{ $a->Duracion_Aclimatacion }} días</td> --}}
+                        <td>
+                            @php
+                                // 1. OBTENER LAS UNIDADES REALES DESDE PLANTACIÓN
+                                // Filtramos por los lotes y variedades que pertenecen a esta aclimatación
+                                $total_unidades_reales = 0;
                                 
-                                {{-- Responsable --}}
-                                <td>{{ $a->operadorResponsable->nombre ?? 'N/A' }}</td>
+                                $variedades_resumen = $a->lotesAclimatados
+                                    ->groupBy('variedad.ID_Variedad') 
+                                    ->map(function ($lotes) use (&$total_unidades_reales) {
+                                        $primero = $lotes->first();
+                                        $ids_llegada = $lotes->pluck('ID_Llegada')->toArray();
 
-                                {{-- Acciones --}}
-                                <td>
-                                    <a href="{{ route('aclimatacion.show', $a->ID_Aclimatacion) }}" class="btn btn-sm btn-warning">Gestionar</a>
-                                </td>
-                            </tr>
-                            @endforeach
+                                        // CONSULTA DIRECTA A PLANTACIÓN PARA TRAER LO SEMBRADO
+                                        $unidades_sembradas = DB::table('plantacion')
+                                            ->whereIn('ID_Llegada', $ids_llegada)
+                                            ->where('ID_Variedad', $primero->variedad->ID_Variedad)
+                                            ->sum('cantidad_sembrada');
 
-                            @if($aclimataciones->isEmpty())
-                            <tr>
-                                <td colspan="7" class="text-center">No hay etapas de aclimatación iniciadas.</td>
-                                {{-- NOTA: colspan debe ser 7 si quitamos una columna --}}
-                            </tr>
+                                        $total_unidades_reales += $unidades_sembradas;
+
+                                        return [
+                                            'nombre' => $primero->variedad->nombre ?? 'N/A',
+                                            'codigo' => $primero->variedad->codigo ?? 'N/A',
+                                            'cantidad_real' => $unidades_sembradas,
+                                        ];
+                                    });
+
+                                $lote_referencia = $a->lotesAclimatados->first();
+                                $nombre_lote_traducido = 'N/A';
+                                $fecha_llegada_formateada = null;
+
+                                if ($lote_referencia) {
+                                    $fecha_llegada = DB::table('llegada_planta')->where('ID_Llegada', $lote_referencia->ID_Llegada)->value('Fecha_Llegada');
+                                    $fecha_carbon = Carbon::parse($fecha_llegada ?? $lote_referencia->Fecha_Ingreso);
+                                    $fecha_llegada_formateada = $fecha_carbon->format('d/m/Y');
+                                    
+                                    $buscar = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    $reemplazar = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                                    $nombre_lote_traducido = str_replace($buscar, $reemplazar, $lote_referencia->nombre_lote_semana ?? 'N/A');
+                                }
+                            @endphp
+
+                            @if ($lote_referencia)
+                            <div class="d-flex flex-column">
+                                <strong class="small mb-0">{{ $nombre_lote_traducido }}</strong>
+                                @if($fecha_llegada_formateada)
+                                    <small class="text-muted mb-1"><i class="bi bi-calendar3 me-1"></i>{{ $fecha_llegada_formateada }}</small>
+                                @endif
+
+                                <ul class="list-unstyled small mb-0">
+                                    @foreach ($variedades_resumen as $v)
+                                    <li class="d-flex justify-content-between">
+                                        <span class="text-muted">Var: {{ $v['nombre'] }} ({{ $v['codigo'] }}):</span>
+                                        <span class="fw-bold text-end ms-2">{{ number_format($v['cantidad_real']) }} und.</span>
+                                    </li>
+                                    @endforeach
+                                </ul>
+                            </div>
                             @endif
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        </td>
+
+                        {{-- TOTAL GLOBAL BASADO EN LO SEMBRADO --}}
+                        <td class="text-center">
+                            <span class="fw-bold text-primary fs-5">{{ number_format($total_unidades_reales) }}</span>
+                        </td>
+
+                        {{-- ESTADO, RESPONSABLE Y ACCIONES (Se mantienen igual) --}}
+                        <td>
+                            @php $estados = $a->lotesAclimatados->pluck('pivot.Estado_Inicial_Lote')->unique(); @endphp
+                            @if ($estados->count() === 1)
+                                <span class="badge bg-primary">{{ $estados->first() }}</span>
+                            @else
+                                <span class="badge bg-secondary">Múltiple</span>
+                            @endif
+                        </td>
+                        <td>{{ $a->operadorResponsable->nombre ?? 'N/A' }}</td>
+                        <td>
+                            <a href="{{ route('aclimatacion.show', $a->ID_Aclimatacion) }}" class="btn btn-sm btn-warning">Gestionar</a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-
     </div>
-
+</div>  
     @endsection
