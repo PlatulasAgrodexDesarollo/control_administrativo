@@ -49,6 +49,11 @@
     $lote = $plantaciones_del_lote->first()->loteLlegada;
     $variedad = $lote->variedad ?? null;
 
+    // --- AGREGADO: TRADUCCIÓN DE MESES ---
+    $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    $nombre_lote_traducido = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana ?? 'ID Lote #' . $id_lote);
+    // -------------------------------------
 
     $total_recibidas = $lote->Cantidad_Plantas;
     $total_sembradas = $plantaciones_del_lote->sum('cantidad_sembrada');
@@ -62,8 +67,8 @@
         {{-- ENCABEZADO DE GRUPO (Información Consolidada) --}}
         <div class="card-header bg-secondary text-white">
             <h5 class="mb-0">
-               
-                LOTE DE INVENTARIO: <span class="fw-bold text-dark">{{ $lote->nombre_lote_semana ?? 'ID Lote #' . $id_lote }}</span>
+                
+                LOTE DE INVENTARIO: <span class="fw-bold text-dark">{{ $nombre_lote_traducido }}</span>
                 <small>
                     {{ $variedad->nombre ?? 'N/A' }}
                     @if ($variedad && $variedad->codigo) [CÓDIGO: {{ $variedad->codigo }}] @endif
@@ -151,7 +156,5 @@
     }
 </script>
 @endsection
-
-
 
 @endsection
