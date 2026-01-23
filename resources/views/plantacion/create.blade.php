@@ -26,13 +26,17 @@
             <label for="ID_Llegada" class="form-label">Lote de Inventario a Plantar (Origen):</label>
             <select name="ID_Llegada" id="lote-origen" class="form-control" required>
                 <option value="">Seleccione el lote recibido</option>
-                {{-- $lotes_disponibles se carga en el controlador create() --}}
                 @foreach ($lotes_disponibles as $lote)
-                {{-- CRÍTICO: Añadimos data-cantidad para la validación visual --}}
+                @php
+                    // LÓGICA DE TRADUCCIÓN DEL IDENTIFICADOR
+                    $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    $nombre_lote_espanol = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana ?? 'N/A');
+                @endphp
                 <option value="{{ $lote->ID_Llegada }}"
                     data-cantidad="{{ $lote->Cantidad_Plantas }}"
                     {{ old('ID_Llegada') == $lote->ID_Llegada ? 'selected' : '' }}>
-                  LOTE: {{ $lote->nombre_lote_semana ?? 'N/A' }} 
+                  {{ $nombre_lote_espanol }} 
                     - {{ $lote->variedad->nombre ?? 'N/A' }}
 
                     @if ($lote->variedad)
@@ -88,8 +92,6 @@
             @error('Operador_Plantacion') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
-       
-
         <button type="submit" class="btn btn-success" id="btn-guardar">Guardar Plantación</button>
     </form>
 </div>
@@ -109,7 +111,6 @@
             const selectedOption = selectLote.options[selectLote.selectedIndex];
             const maxCantidad = selectedOption.getAttribute('data-cantidad');
 
-            // Muestra el stock disponible
             if (maxCantidad) {
                 maxStockElement.textContent = new Intl.NumberFormat().format(maxCantidad);
             } else {
@@ -117,9 +118,8 @@
             }
         }
 
-        // Validación al enviar el formulario (Front-end)
         form.addEventListener('submit', function(e) {
-            const maxCantidad = parseInt(selectLote.options[selectLote.selectedIndex].getAttribute('data-cantidad'));
+            const maxCantidad = parseInt(selectLote.options[selectLote.selectedIndex].getAttribute('data-cantidad')) || 0;
             const sembrada = parseInt(inputSembrada.value) || 0;
             const sinRaiz = parseInt(inputSinRaiz.value) || 0;
             const malFormada = parseInt(inputMalFormada.value) || 0;
@@ -132,7 +132,6 @@
                 return false;
             }
 
-            
             btnGuardar.disabled = true;
             this.submit();
         });
