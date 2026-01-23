@@ -16,7 +16,7 @@
     return $datos_acli ? ($datos_acli->cantidad_inicial_lote - $datos_acli->merma_acumulada_lote) : 0;
     });
 
-    // 2. CÁLCULO DE STOCK GENERAL ACTUAL (CORREGIDO: AHORA RESTA MERMA DE SELECCIÓN FINAL)
+    // 2. CÁLCULO DE STOCK GENERAL ACTUAL
     $stock_general_planta = 0;
     foreach($lotes_detallados as $lote) {
     $datos_acli = DB::table('aclimatacion_variedad')
@@ -26,13 +26,13 @@
     $entrada_neta = $datos_acli ? ($datos_acli->cantidad_inicial_lote - $datos_acli->merma_acumulada_lote) : 0;
     $merma_actual = $lote->pivot->merma_acumulada_lote ?? 0;
 
-    // --- UNICO CAMBIO EN LOGICA: Restar la selección final ---
+   
     $merma_seleccion_final = $lote->pivot->merma_seleccion_final ?? 0;
 
     $stock_general_planta += ($entrada_neta - $merma_actual - $merma_seleccion_final);
     }
 
-    // --- LÓGICA CORREGIDA DEL CONTADOR DE DÍAS ---
+    // --- LÓGICA DEL CONTADOR DE DÍAS ---
     $fecha_ingreso = \Carbon\Carbon::parse($endurecimiento->Fecha_Ingreso)->startOfDay();
 
     if($endurecimiento->Estado_General == 'Finalizado' && $endurecimiento->Fecha_Cierre) {
@@ -191,9 +191,8 @@
     </div>
 </div>
 
-{{-- MODAL DE TRAZABILIDAD ELIMINADO SEGUN PETICION --}}
 
-{{-- MODAL DE FINALIZACIÓN Y OTROS SE MANTIENEN IGUAL --}}
+
 <div class="modal fade" id="modalFinalizar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered text-start">
         <form action="{{ route('endurecimiento.finalizar', $endurecimiento->ID_Endurecimiento) }}" method="POST">
