@@ -13,132 +13,76 @@ use Carbon\Carbon;
 class PlantacionController extends Controller
 {
 
-    public function index(Request $request)
-    {
+                public function index(Request $request)
+{
+    $filtro = $request->input('q');
 
-        $filtro = $request->input('q');
+    $meses_es = [
+        'ENERO' => 1, 'FEBRERO' => 2, 'MARZO' => 3, 'ABRIL' => 4, 'MAYO' => 5, 'JUNIO' => 6,
+        'JULIO' => 7, 'AGOSTO' => 8, 'SEPTIEMBRE' => 9, 'OCTUBRE' => 10, 'NOVIEMBRE' => 11, 'DICIEMBRE' => 12,
+        'ENE' => 1, 'FEB' => 2, 'MAR' => 3, 'ABR' => 4, 'MAY' => 5, 'JUN' => 6,
+        'JUL' => 7, 'AGO' => 8, 'SEP' => 9, 'OCT' => 10, 'NOV' => 11, 'DIC' => 12,
+    ];
 
-        $meses_es = [
-            'ENERO' => 1,
-            'FEBRERO' => 2,
-            'MARZO' => 3,
-            'ABRIL' => 4,
-            'MAYO' => 5,
-            'JUNIO' => 6,
-            'JULIO' => 7,
-            'AGOSTO' => 8,
-            'SEPTIEMBRE' => 9,
-            'OCTUBRE' => 10,
-            'NOVIEMBRE' => 11,
-            'DICIEMBRE' => 12,
-            'ENE' => 1,
-            'FEB' => 2,
-            'MAR' => 3,
-            'ABR' => 4,
-            'MAY' => 5,
-            'JUN' => 6,
-            'JUL' => 7,
-            'AGO' => 8,
-            'SEP' => 9,
-            'OCT' => 10,
-            'NOV' => 11,
-            'DIC' => 12,
-        ];
-        $mes_buscado = strtoupper($filtro);
-        $mes_numero = $meses_es[$mes_buscado] ?? null;
+    $mes_buscado = strtoupper($filtro);
+    $mes_numero = $meses_es[$mes_buscado] ?? null;
 
-        $anio_actual = date('Y');
+    $query = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion']);
 
-       
-        $query = Plantacion::with(['loteLlegada.variedad', 'operadorPlantacion']);
+    if ($filtro) {
+        $query->where(function ($q) use ($filtro, $mes_numero) {
+            
+            // 1. Busqueda por OPERADOR (Prioridad texto)
+            $q->whereHas('operadorPlantacion', function ($sub) use ($filtro) {
+                $sub->where('nombre', 'like', '%' . $filtro . '%');
+            });
 
-        if ($filtro) {
-       
-            $query->where(function ($q) use ($filtro, $mes_numero, $anio_actual) {
+            // 2. Busqueda por VARIEDAD O CÓDIGO (Texto)
+            $q->orWhereHas('loteLlegada.variedad', function ($sub) use ($filtro) {
+                $sub->where('nombre', 'like', '%' . $filtro . '%')
+                    ->orWhere('codigo', 'like', '%' . $filtro . '%');
+            });
 
-          
-                $q->whereHas('operadorPlantacion', function ($subq) use ($filtro) {
-                    $subq->where('nombre', 'like', '%' . $filtro . '%');
-                })
-                    ->orWhereHas('loteLlegada.variedad', function ($subq) use ($filtro) {
-                        $subq->where('nombre', 'like', '%' . $filtro . '%')
-                            ->orWhere('codigo', 'like', '%' . $filtro . '%');
-                    });
+            // 3. Busqueda por FECHAS (Solo si el filtro parece ser un mes o contiene números)
+            $numero = preg_match('/\d+/', $filtro, $matches) ? $matches[0] : null;
 
-               
-                $numericSearchTerm = null;
-
-         
-                if (str_contains(strtolower($filtro), 'lote') || is_numeric($filtro)) {
-                    if (preg_match('/\d+/', $filtro, $matches)) {
-                        $numericSearchTerm = $matches[0];
-                    }
-                }
-
-                
-                $q->orWhereHas('loteLlegada', function ($subq) use ($filtro, $mes_numero, $numericSearchTerm, $anio_actual) {
-
-                 
-                    $subq->where(function ($lotQuery) use ($filtro, $mes_numero, $numericSearchTerm, $anio_actual) {
-
-                        $hasLotFilter = false;
-
-                        if ($numericSearchTerm && is_numeric($numericSearchTerm)) {
-                            $lotQuery->where(function ($q) use ($numericSearchTerm) {
-                              
-                                $q->where('ID_Llegada', $numericSearchTerm);
-
-                                
-                                $q->orWhere(DB::raw('CEIL(DAYOFMONTH(Fecha_Llegada) / 7)'), '=', $numericSearchTerm);
-
-                                
-                                $q->orWhereYear('Fecha_Llegada', $numericSearchTerm)
-                                    ->orWhereMonth('Fecha_Llegada', $numericSearchTerm);
-                            });
-                            $hasLotFilter = true;
-                        }
-
-                       
-                        if ($mes_numero) {
-                    
-                            $method = $hasLotFilter ? 'orWhere' : 'where';
-
-                            $lotQuery->{$method}(function ($q) use ($mes_numero, $anio_actual) {
-                            
-                                $q->whereMonth('Fecha_Llegada', $mes_numero);
-                                $q->whereYear('Fecha_Llegada', $anio_actual);
-                            });
-
-                            $hasLotFilter = true;
-                        }
-                        if (!$hasLotFilter && str_contains(strtolower($filtro), 'semana')) {
-                            if (preg_match('/\d+/', $filtro, $matches)) {
-                                $weekNumber = $matches[0];
-
-                                $lotQuery->where(DB::raw('CEIL(DAYOFMONTH(Fecha_Llegada) / 7)'), '=', $weekNumber);
-                                $hasLotFilter = true;
-                            }
-                        }
-
+            if ($mes_numero || $numero) {
+                $q->orWhereHas('loteLlegada', function ($subq) use ($filtro, $mes_numero, $numero) {
+                    $subq->where(function ($inner) use ($mes_numero, $numero, $filtro) {
                         
-                        if (!$hasLotFilter) {
-                            $lotQuery->whereRaw('0 = 1');
+                        // Si es un Mes por nombre
+                        if ($mes_numero) {
+                            $inner->orWhereMonth('Fecha_Llegada', $mes_numero);
+                        }
+
+                        // Si es un Lote X o Semana X
+                        if ($numero) {
+                            if (str_contains(strtolower($filtro), 'lote') || str_contains(strtolower($filtro), 'sem')) {
+                                $inner->orWhereRaw('CEIL(DAYOFMONTH(Fecha_Llegada) / 7) = ?', [$numero]);
+                            } else {
+                                // Evitamos que el año actual (2026) filtre todo si el usuario solo puso un nombre corto
+                                if (strlen($filtro) < 5) { 
+                                    $inner->orWhere('ID_Llegada', $numero)
+                                          ->orWhereMonth('Fecha_Llegada', $numero);
+                                } else {
+                                    $inner->orWhereYear('Fecha_Llegada', $numero);
+                                }
+                            }
                         }
                     });
                 });
-            });
-        }
-
-
-        $plantaciones = $query->get();
-        $plantaciones_agrupadas = $plantaciones->groupBy('ID_Llegada');
-
-        $ruta = route('aclimatacion.index');
-        $texto_boton = "Volver a Aclimatación";
-
-        return view('plantacion.index', compact('plantaciones_agrupadas', 'filtro'))
-            ->with(compact('ruta', 'texto_boton'));
+            }
+        });
     }
+
+    $plantaciones = $query->orderBy('ID_Plantacion', 'desc')->get();
+    $plantaciones_agrupadas = $plantaciones->groupBy('ID_Llegada');
+
+    $ruta = route('aclimatacion.index');
+    $texto_boton = "Volver a Aclimatación";
+
+    return view('plantacion.index', compact('plantaciones_agrupadas', 'filtro', 'ruta', 'texto_boton'));
+}
 
     public function show($id)
     {
