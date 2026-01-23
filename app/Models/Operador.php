@@ -9,7 +9,7 @@ class Operador extends Model
 {
     use HasFactory;
     
-    // Nombre de la tabla
+  
     protected $table = 'operadores'; 
     
     
