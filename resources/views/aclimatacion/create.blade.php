@@ -2,10 +2,7 @@
 
 @section('content')
 
-
 @php
-
-
 $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</option>';
 @endphp
 
@@ -21,7 +18,6 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
     <form action="{{ route('aclimatacion.store') }}" method="POST">
         @csrf
 
-
         <div id="variedad-list-container">
             {{-- Contenedor de Filas Dinámicas --}}
             <div id="variedad-table-body"></div>
@@ -32,21 +28,12 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
         </button>
         <hr class="my-4">
 
-
         {{-- 2. CAMPO FECHA INGRESO --}}
         <div class="mb-3">
             <label for="Fecha_Ingreso" class="form-label">Fecha de Ingreso a Aclimatación:</label>
             <input type="date" name="Fecha_Ingreso" class="form-control" required value="{{ old('Fecha_Ingreso', date('Y-m-d')) }}">
             @error('Fecha_Ingreso') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
-
-        {{-- 3. ESTADO INICIAL --}}
-        <div class="mb-3">
-            <label for="Estado_Inicial" class="form-label">Estado Inicial (Observación Rápida):</label>
-            <input type="text" name="Estado_Inicial" class="form-control" required value="{{ old('Estado_Inicial') }}">
-            @error('Estado_Inicial') <div class="text-danger">{{ $message }}</div> @enderror
-        </div>
-
 
         {{-- 5. SELECCIÓN DE OPERADOR (FK) --}}
         <div class="mb-3">
@@ -62,11 +49,10 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
             @error('Operador_Responsable') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
-
-
         <button type="submit" class="btn btn-success">Iniciar Aclimatación</button>
     </form>
 </div>
+
 <script>
     const LOTE_OPTIONS_HTML = `{!! $lote_options_js !!}`;
 
@@ -87,14 +73,12 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                 input.name = newName;
             });
 
-
             const removeButton = row.querySelector('.remove-variedad-row');
             if (removeButton) {
                 removeButton.setAttribute('data-row-index', index);
             }
         });
     }
-
 
     function addVariedadRow(isMandatory = false) {
 
@@ -110,7 +94,6 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                 <select name="lotes_a_mover[${newIndex}][id_lote]" class="form-control lote-select" required>
                     ${LOTE_OPTIONS_HTML}
                 </select>
-                {{-- Campo oculto para la variedad, se llena con JS --}}
                 <input type="hidden" name="lotes_a_mover[${newIndex}][id_variedad]" class="variedad-hidden-input"> 
             </div>
             
@@ -121,6 +104,15 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                         value="" readonly> 
             </div>
             
+            <div class="mb-3">
+                <label class="form-label">Estado Inicial</label>
+                <select name="lotes_a_mover[${newIndex}][estado_inicial]" class="form-control" required>
+                    <option value="Normal">Normal</option>
+                    <option value="Contaminada">Contaminada</option>
+                    <option value="Debil">Débil</option>
+                </select>
+            </div>
+
             <div class="text-end">
                 <button type="button" class="btn btn-danger btn-sm remove-variedad-row" 
                         data-row-index="${newIndex}"
@@ -128,23 +120,12 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                     <i class="fas fa-trash"></i> Eliminar
                 </button>
             </div>
-
-            <div class="col-md-3">
-    <label class="form-label">Estado Inicial</label>
-    <select name="lotes_a_mover[${newIndex}][estado_inicial]" class="form-control" required>
-        <option value="Normal">Normal</option>
-        <option value="Contaminada">Contaminada</option>
-        <option value="Debil">Débil</option>
-       
-    </select>
-</div>
         `;
 
         newRow.innerHTML = newRowContent;
         variedadTableBody.appendChild(newRow);
 
     }
-
 
     variedadTableBody.addEventListener('change', function(e) {
         if (e.target.classList.contains('lote-select')) {
@@ -156,19 +137,16 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
             const cantidadInput = parentRow.querySelector('.cantidad-input');
             const variedadHiddenInput = parentRow.querySelector('.variedad-hidden-input');
 
-
             if (!selectedLoteId) {
                 cantidadInput.value = '';
                 variedadHiddenInput.value = '';
                 return;
             }
 
-
             const allSelects = variedadTableBody.querySelectorAll('.lote-select');
             let duplicateCount = 0;
 
             allSelects.forEach(select => {
-
                 if (select.value === selectedLoteId && select !== currentSelect) {
                     duplicateCount++;
                 }
@@ -182,11 +160,9 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                 return;
             }
 
-
             const totalSembrado = selectedOption.getAttribute('data-total-sembrado') || 0;
             const variedadId = selectedOption.getAttribute('data-variedad-id');
 
-            //  
             if (!variedadId || isNaN(parseInt(variedadId)) || parseInt(variedadId) === 0) {
                 alert('Error: La ID de la variedad para este lote no es válida. No se puede proceder.');
                 currentSelect.value = '';
@@ -195,27 +171,15 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
                 return;
             }
 
-
             cantidadInput.value = totalSembrado;
             cantidadInput.max = totalSembrado;
             variedadHiddenInput.value = variedadId;
-
-            if (totalSembrado == 0) {
-                alert('Advertencia: El lote seleccionado tiene un total sembrado de 0. Verifique los registros de Plantación.');
-                cantidadInput.min = 0;
-            } else {
-                cantidadInput.min = 1;
-            }
         }
     });
-
-
 
     addVariedadBtn.addEventListener('click', () => {
         addVariedadRow(false);
     });
-
-
 
     variedadTableBody.addEventListener('click', function(e) {
         if (e.target.closest('.remove-variedad-row')) {
@@ -224,14 +188,12 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
 
             if (variedadTableBody.querySelectorAll('.variedad-row').length > 1 && !button.disabled) {
                 rowToRemove.remove();
-
                 reIndexRows();
             } else if (button.disabled) {
                 alert('Debe haber al menos un lote para iniciar la aclimatación.');
             }
         }
     });
-
 
     addVariedadRow(true);
 </script>
