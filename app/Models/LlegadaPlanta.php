@@ -14,7 +14,7 @@ class LlegadaPlanta extends Model
     protected $primaryKey = 'ID_Llegada';
     public $incrementing = true;
 
-     
+
     protected $fillable = [
         'Fecha_Llegada',
         'Cantidad_Plantas',
@@ -38,31 +38,31 @@ class LlegadaPlanta extends Model
     {
         return Attribute::make(
             get: function (mixed $value, array $attributes) {
-             
+
                 if (empty($attributes['Fecha_Llegada'])) {
                     return 'Fecha N/D';
                 }
-                
+
                 $fecha = Carbon::parse($attributes['Fecha_Llegada']);
-                
-                
-                $semana_del_mes = $fecha->weekOfMonth; 
-                
-                return "Lote " . $semana_del_mes . 
-                       " (" . $fecha->format('M Y') . ")";
+
+
+                $semana_del_mes = $fecha->weekOfMonth;
+
+                return "Lote " . $semana_del_mes .
+                    " (" . $fecha->format('M Y') . ")";
             },
         );
     }
 
     public function aclimataciones()
-{
-    return $this->belongsToMany(
-        \App\Models\Aclimatacion::class,
-        'aclimatacion_variedad',
-        'ID_llegada',       
-        'aclimatacion_id'   
-    )
-    ->withPivot('variedad_id', 'cantidad_plantas')
-    ->with('variedad');
-}
+    {
+        return $this->belongsToMany(
+            \App\Models\Aclimatacion::class,
+            'aclimatacion_variedad',
+            'ID_llegada',
+            'aclimatacion_id'
+        )
+            ->withPivot('variedad_id', 'cantidad_plantas')
+            ->with('variedad');
+    }
 }
