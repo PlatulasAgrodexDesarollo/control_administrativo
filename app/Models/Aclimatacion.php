@@ -35,17 +35,26 @@ class Aclimatacion extends Model
     }
 
    
-    public function lotesAclimatados(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            \App\Models\LlegadaPlanta::class,
-            'aclimatacion_variedad', 
-            'aclimatacion_id', 
-            'ID_llegada' 
-        )
-        ->withPivot('variedad_id', 'cantidad_plantas')
-        ->with('variedad');
-    }
+   public function lotesAclimatados(): BelongsToMany
+{
+    return $this->belongsToMany(
+        \App\Models\LlegadaPlanta::class,
+        'aclimatacion_variedad', 
+        'aclimatacion_id', 
+        'ID_llegada' 
+    )
+  
+    ->withPivot(
+        'variedad_id', 
+        'cantidad_plantas', 
+        'cantidad_inicial_lote', 
+        'merma_acumulada_lote', 
+        'merma_inicial_plantacion', 
+        'Estado_Inicial_Lote'
+    )
+    ->withTimestamps() 
+    ->with('variedad');
+}
 
    
     public function variedades(): BelongsToMany
