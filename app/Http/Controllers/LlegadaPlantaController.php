@@ -37,27 +37,24 @@ class LlegadaPlantaController extends Controller
     }
 
 
-    public function store(Request $request)
-    {
-        // Validación de campos
-        $request->validate([
-            'Fecha_Llegada' => 'required|date',
-            'Cantidad_Plantas' => 'required|integer|min:1',
-            'Pre_Aclimatacion' => 'nullable|boolean',
-            'Observaciones' => 'nullable|string',
-            'ID_Variedad' => 'required|exists:variedades,ID_Variedad',
-            'Operador_Llegada' => 'required|exists:operadores,ID_Operador',
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'Fecha_Llegada' => 'required|date',
+        'Cantidad_Plantas' => 'required|integer|min:1',
+        'ID_Variedad' => 'required|exists:variedades,ID_Variedad',
+        'Operador_Llegada' => 'required|exists:operadores,ID_Operador',
+    ]);
 
-        $data = $request->all();
-        $data['Pre_Aclimatacion'] = $request->has('Pre_Aclimatacion') ? 1 : 0; 
+    $data = $request->all();
+    $data['Pre_Aclimatacion'] = $request->has('Pre_Aclimatacion') ? 1 : 0; 
 
-       
-        LlegadaPlanta::create($request->all());
+    // Guardamos los datos que SI existen en tu tabla
+    \App\Models\LlegadaPlanta::create($data);
 
-        return redirect()->route('llegada_planta.index')
-            ->with('success', ' planta recibida y registrada exitosamente.');
-    }
+    return redirect()->route('llegada_planta.index')
+        ->with('success', 'Planta recibida y registrada exitosamente.');
+}
     public function show(LlegadaPlanta $llegadaPlanta)
     {
         // Cargamos las relaciones necesarias: Operador y Variedad
