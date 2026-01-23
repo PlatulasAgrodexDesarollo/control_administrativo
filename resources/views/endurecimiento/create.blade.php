@@ -4,7 +4,7 @@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <h1 class="h3 mb-4 text-primary"><i class="bi bi-box-arrow-in-right"></i> Iniciar Endurecimiento</h1>
+            <h1> Iniciar Endurecimiento</h1>
 
             <div class="card shadow border-0">
                 <div class="card-header bg-white py-3">
@@ -14,11 +14,9 @@
                     <form action="{{ route('endurecimiento.store') }}" method="POST">
                         @csrf
 
-                       
                         <div class="mb-4">
                             <label class="form-label fw-bold text-uppercase small">1. Seleccionar Etapa de Aclimatación</label>
 
-                       
                             <div style="width: 100%; overflow: hidden;">
                                 <select name="aclimatacion_id" class="form-select @error('aclimatacion_id') is-invalid @enderror"
                                     style="width: 100% !important; min-width: 0; table-layout: fixed;" required>
@@ -26,22 +24,29 @@
                                     <option value="" selected disabled>-- Seleccione el Lote --</option>
 
                                     @foreach($aclimataciones_listas as $acli)
-                                    <option value="{{ $acli->ID_Aclimatacion }}">
-                                        {{ $acli->nombre_corto }} | Cant: {{ number_format($acli->cantidad_final) }}
-                                    </option>
+                                        @php
+                                            // --- LÓGICA DE TRADUCCIÓN DE MESES ---
+                                            $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                            $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                                            
+                                            // Aplicamos el cambio al nombre corto del lote
+                                            $nombre_traducido = str_ireplace($meses_en, $meses_es, $acli->nombre_corto);
+                                        @endphp
+
+                                        <option value="{{ $acli->ID_Aclimatacion }}">
+                                            {{ $nombre_traducido }} | Cant: {{ number_format($acli->cantidad_final) }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
 
                         <div class="row mb-4">
-                           
                             <div class="col-md-6">
                                 <label class="form-label fw-bold"><i class="bi bi-calendar-event"></i> 2. Fecha de Inicio</label>
                                 <input type="date" name="Fecha_Ingreso" class="form-control" value="{{ date('Y-m-d') }}" required>
                             </div>
 
-                            
                             <div class="col-md-6">
                                 <label class="form-label fw-bold"><i class="bi bi-person-badge"></i> 3. Responsable</label>
                                 <select name="Operador_Responsable" class="form-select @error('Operador_Responsable') is-invalid @enderror" required>
@@ -54,15 +59,12 @@
                             </div>
                         </div>
 
-                        
-
                         <hr class="my-4">
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-check-circle-fill"></i> Iniciar Proceso de Endurecimiento
                             </button>
-
                         </div>
                     </form>
                 </div>
