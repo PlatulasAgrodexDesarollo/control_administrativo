@@ -11,7 +11,8 @@ use App\Http\Controllers\EndurecimientoController;
 use App\Http\Controllers\RecuperacionMermaController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\ControlPlagasController;
-
+use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 Route::get('/login', fn() => "Página de Login Simulada")->name('login'); 
@@ -41,3 +42,44 @@ Route::resource('endurecimiento', EndurecimientoController::class);
 Route::get('/reporte-mensual', [ReporteController::class, 'reporteMensual'])->name('reporte.mensual');
 
 Route::get('control_plagas/create/{etapa_type}/{etapa_id}', [ControlPlagasController::class, 'create'])->name('control_plagas.create');
+
+   // Redirección inicial
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+});
+
+Route::middleware(['sincro.sesion'])->group(function () {
+
+    // PANEL PRINCIPAL (Dashboard)
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // --- 1. RUTAS EXCLUSIVAS DEL ADMINISTRADOR (Rol 1) ---
+    Route::middleware(['rol:1'])->group(function () {
+        
+        Route::get('/configuracion', [DashboardController::class, 'index'])->name('configuracion');
+        
+        Route::resource('operadores', OperadorController::class);
+        Route::get('/reportes-mensuales', [ReporteController::class, 'reporteMensual'])->name('reporte.mensual');
+    });
+
+    // --- 2. RUTAS DE SECRETARÍA (Acceso: Rol 1 y Rol 2) ---
+    Route::middleware(['rol:1,2'])->group(function () {
+        Route::get('/bitacora', [DashboardController::class, 'index'])->name('bitacora');
+        
+        Route::resource('llegada-planta', LlegadaPlantaController::class);
+        Route::resource('variedades', VariedadController::class);
+    });
+
+    // --- 3. RUTAS DE PRODUCCIÓN (Acceso: Rol 1 y Rol 3) ---
+    Route::middleware(['rol:1,3'])->group(function () {
+        Route::get('/mi-rendimiento', [DashboardController::class, 'index'])->name('mi.rendimiento');
+        
+        Route::resource('aclimatacion', AclimatacionController::class);
+        Route::resource('plantacion', PlantacionController::class);
+        Route::resource('recuperacion', RecuperacionMermaController::class);
+        Route::resource('endurecimiento', EndurecimientoController::class);
+    });
+
+    // RUTA DE CIERRE DE SESIÓN
+    Route::get('/logout', [DashboardController::class, 'logout'])->name('logout');
+});
