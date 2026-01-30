@@ -113,6 +113,18 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'mysql_principal' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST_PRINCIPAL', '127.0.0.1'),
+            'port' => env('DB_PORT_PRINCIPAL', '3306'),
+            'database' => env('DB_DATABASE_PRINCIPAL', 'administración_2'),
+            'username' => env('DB_USERNAME_PRINCIPAL', 'root'),
+            'password' => env('DB_PASSWORD_PRINCIPAL', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+        ],
+
     ],
 
     /*
@@ -148,7 +160,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
