@@ -125,9 +125,18 @@
                             <strong class="text-dark d-block fs-6 text-uppercase">{{ $nombre_lote_es }}</strong>
                             {{-- LÍNEA AGREGADA: Muestra la fecha de llegada debajo del nombre del lote --}}
                             <div class="small text-muted mb-1">
-                                <i class="bi bi-calendar3 me-1"></i>
-                                {{ $lote->Fecha_Llegada ? \Carbon\Carbon::parse($lote->Fecha_Llegada)->format('d/m/Y') : 'Fecha no disponible' }}
-                            </div>
+                <i class="bi bi-calendar3 me-1"></i>
+                @php
+                    // Obtenemos la fecha más antigua de plantación para este lote y variedad
+                    $fecha_inicio_plantacion = DB::table('plantacion')
+                        ->where('ID_Llegada', $lote->ID_Llegada)
+                        ->where('ID_Variedad', $lote->pivot->variedad_id)
+                        ->min('Fecha_Plantacion');
+                @endphp
+                
+                <span class="text-uppercase" style="font-size: 0.75rem;"></span>
+                {{ $fecha_inicio_plantacion ? \Carbon\Carbon::parse($fecha_inicio_plantacion)->format('d/m/Y') : 'Sin fecha' }}
+            </div>
 
                             <div class="mt-1">
                                 <span class="badge bg-light text-secondary border small">
