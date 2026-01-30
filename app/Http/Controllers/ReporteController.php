@@ -12,7 +12,6 @@ use Carbon\Carbon;use App\Models\Operador;
 
 class ReporteController extends Controller
 {
-
 public function reporteMensual(Request $request)
 {
     $mes = $request->get('mes', date('m'));
@@ -29,7 +28,11 @@ public function reporteMensual(Request $request)
     $reporte = $lotesMes->map(function($lote) {
         $id_llegada = $lote->ID_Llegada;
 
-        // Lógica de colores CSS
+        $fecha_inicio = DB::table('plantacion')
+            ->where('ID_Llegada', $id_llegada)
+            ->where('ID_Variedad', $lote->ID_Variedad)
+            ->min('Fecha_Plantacion');
+
         $coloresCss = [
             'ROJO' => 'red', 'AZUL' => 'blue', 'VERDE' => 'green', 'AMARILLO' => 'yellow',
             'NARANJA' => 'orange', 'ROSA' => 'pink', 'MORADO' => 'purple', 'FUCSIA' => '#FF00FF',
@@ -38,10 +41,8 @@ public function reporteMensual(Request $request)
         ];
         $colorFinal = $coloresCss[strtoupper(trim($lote->color))] ?? $lote->color;
 
-        // Mermas y Recuperación
         $m_plant = DB::table('plantacion')->where('ID_Llegada', $id_llegada)->sum('cantidad_perdida') ?? 0;
         $m_recuperada = DB::table('recuperacion_mermas')->where('ID_Llegada', $id_llegada)->sum('Cantidad_Recuperada') ?? 0;
-        
         $total_sembrado = DB::table('plantacion')->where('ID_Llegada', $id_llegada)->sum('cantidad_sembrada') ?? 0;
         $m_aclim = DB::table('aclimatacion_variedad')->where('ID_llegada', $id_llegada)->sum('merma_acumulada_lote') ?? 0;
         
@@ -51,7 +52,6 @@ public function reporteMensual(Request $request)
         $m_e = $endur->m_e ?? 0;
         $m_s = $endur->m_s ?? 0;
 
-        // --- CÁLCULO FINAL DEL STOCK ---
         $mermas_totales = $m_plant + $m_aclim + $m_e + $m_s;
         $saldo_final = ($lote->cantidad_plantas - $mermas_totales) + $m_recuperada;
 
@@ -59,6 +59,7 @@ public function reporteMensual(Request $request)
             'variedad' => $lote->variedad,
             'codigo' => $lote->codigo,
             'color' => $colorFinal,
+            'fecha_inicio' => $fecha_inicio,
             'total_ingreso' => $lote->cantidad_plantas,
             'm_plant' => $m_plant,
             'm_recuperada' => $m_recuperada,
@@ -70,8 +71,25 @@ public function reporteMensual(Request $request)
         ];
     });
 
-    // --- NUEVA TABLA: RESUMEN GENERAL POR VARIEDAD ---
-    // Agrupamos el reporte anterior por el nombre de la variedad y sumamos sus valores
+    // 1. Buscamos la fecha más antigua de cada variedad
+    $agrupado = $reporte->groupBy('variedad');
+    
+    $variedadesOrdenadas = $agrupado->map(function($items) {
+        return $items->min('fecha_inicio') ?? '9999-12-31';
+    })->sort(); // Esto ordena las VARIEDADES por su fecha más vieja
+
+    $reporteFinal = collect();
+
+    // 2. Construimos la lista final recorriendo las variedades en el orden de su fecha
+    foreach ($variedadesOrdenadas as $nombreVariedad => $fechaReferencia) {
+        $lotesDeEstaVariedad = $agrupado->get($nombreVariedad)->sortBy('fecha_inicio');
+        foreach ($lotesDeEstaVariedad as $item) {
+            $reporteFinal->push($item);
+        }
+    }
+    
+    $reporte = $reporteFinal; 
+
     $resumenVariedades = $reporte->groupBy('variedad')->map(function ($items, $nombre) {
         return (object)[
             'variedad' => $nombre,
@@ -87,7 +105,7 @@ public function reporteMensual(Request $request)
             'saldo_neto' => $items->sum('saldo_neto'),
             'lotes_contados' => $items->count()
         ];
-    })->sortByDesc('total_ingreso');
+    });
 
     $totales = [
         'ingreso' => $reporte->sum('total_ingreso'),
@@ -102,17 +120,10 @@ public function reporteMensual(Request $request)
     $ruta = route('dashboard');
     $texto_boton = "Regresar a Módulos";
 
-    return view('reportes.mensual', compact(
-        'reporte', 
-        'resumenVariedades', 
-        'totales', 
-        'mes', 
-        'anio', 
-        'ruta', 
-        'texto_boton', 
-        'nombresMeses'
-    ));
+    return view('reportes.mensual', compact('reporte', 'resumenVariedades', 'totales', 'mes', 'anio', 'ruta', 'texto_boton', 'nombresMeses'));
 }
+
+
     public function create()
 {
     setlocale(LC_TIME, 'es_ES.UTF-8', 'es_ES', 'es');
@@ -186,7 +197,7 @@ public function reporteMensual(Request $request)
             "($fecha_espanol_manual)",
             $lote->nombre_lote_semana ?? 'N/A'
         );
-        // --- FIN DEL CAMBIO SOLICITADO ---
+        
 
         $lote_options_js .= "<option value='{$lote->ID_Llegada}'"
             . " data-variedad-id='{$variedad_id}'"
