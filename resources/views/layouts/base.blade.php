@@ -48,8 +48,9 @@
 
                             @isset($texto_boton)
                             <div class="Opciones-barra">
+                               
                                 <button class="save-button" onclick="window.location.href='{{ $ruta }}'">
-                                    <i class="bi bi-arrow-left"></i> {{ $texto_boton }}
+                                    <i class="bi {{ $texto_boton == 'Cerrar Sesión' ? 'bi-box-arrow-right' : 'bi-arrow-left' }}"></i> {{ $texto_boton }}
                                 </button>
                             </div>
                             @endisset
@@ -60,7 +61,6 @@
         </header>
 
         <main class="py-4">
-
             @yield('content')
         </main>
     </div>
@@ -68,7 +68,6 @@
     {{-- Script de Bootstrap necesario para el dropdown --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-       
         document.addEventListener('DOMContentLoaded', function () {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
