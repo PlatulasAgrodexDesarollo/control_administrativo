@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'sincro.sesion' => \App\Http\Middleware\SincronizarSesion::class,
             
          'rol' => \App\Http\Middleware\RolMiddleware::class,
+
+         'prevent-back' => \App\Http\Middleware\PreventBackHistory::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
