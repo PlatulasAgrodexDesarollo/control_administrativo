@@ -5,7 +5,7 @@
 
 @section('content')
     <div class="container mt-4">
-        <h1>Editar Variedad (ID: {{ $variedad->ID_Variedad }} )</h1> 
+        <h1>Editar Variedad </h1> 
         
         @if ($errors->any())
             <div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
