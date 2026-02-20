@@ -24,7 +24,7 @@ $lote_options_js = $lote_options_js ?? '<option value="">Error al cargar Lotes</
         </div>
 
         <button type="button" class="btn btn-info btn-sm mb-4" id="add-variedad-row">
-            <i class="fas fa-plus"></i> Agregar Otro Lote
+            <i class="fas fa-plus"></i> Agregar Otra Variedad
         </button>
         <hr class="my-4">
 
