@@ -51,27 +51,27 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
 
     // REPORTES Y PLAGAS
     Route::get('/reporte-mensual', [ReporteController::class, 'reporteMensual'])->name('reporte.mensual');
-    Route::get('control_plagas/create/{etapa_type}/{etapa_id}', [ControlPlagasController::class, 'create'])->name('control_plagas.create');
+   
 
-    // --- GRUPOS POR ROL ---
+    //GRUPOS POR ROL
     
     // ADMINISTRADOR
-    Route::middleware(['rol:1'])->group(function () {
-        Route::get('/configuracion', [DashboardController::class, 'index'])->name('configuracion');
+    Route::middleware(['rol:4'])->group(function () {
+        Route::get('/AdministracionControl', [DashboardController::class, 'index'])->name('AdministracionControl');
         Route::resource('operadores', OperadorController::class);
         Route::get('/reportes-mensuales', [ReporteController::class, 'reporteMensual'])->name('reporte.mensual');
     });
 
     // SECRETARÍA
-    Route::middleware(['rol:1,2'])->group(function () {
-        Route::get('/bitacora', [DashboardController::class, 'index'])->name('bitacora');
+    Route::middleware(['rol:4,5'])->group(function () {
+        Route::get('/SecretariaControl', [DashboardController::class, 'index'])->name('SecretariaControl');
         Route::resource('llegada-planta', LlegadaPlantaController::class);
         Route::resource('variedades', VariedadController::class);
     });
 
     // PRODUCCIÓN
-    Route::middleware(['rol:1,3'])->group(function () {
-        Route::get('/mi-rendimiento', [DashboardController::class, 'index'])->name('mi.rendimiento');
+    Route::middleware(['rol:4,6'])->group(function () {
+        Route::get('/AuxiliarControl', [DashboardController::class, 'index'])->name('AuxiliarControl');
         Route::resource('aclimatacion', AclimatacionController::class);
         Route::resource('plantacion', PlantacionController::class);
         Route::resource('recuperacion', RecuperacionMermaController::class);
