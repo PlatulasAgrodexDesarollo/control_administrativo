@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\OperadorController; 
+use App\Http\Controllers\OperadorController;
 use App\Http\Controllers\VariedadController;
 use App\Http\Controllers\LlegadaPlantaController;
 use App\Http\Controllers\PlantacionController;
@@ -27,7 +27,7 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // OPERADORES
-    Route::get('operadores/listaoperadores', [OperadorController::class, 'listaoperadores'])->name('operadores.listaoperadores'); 
+    Route::get('operadores/listaoperadores', [OperadorController::class, 'listaoperadores'])->name('operadores.listaoperadores');
     Route::put('operadores/{operador}/reactivate', [OperadorController::class, 'reactivate'])->name('operadores.reactivate');
     Route::delete('operadores/{operador}/hard-delete', [OperadorController::class, 'hardDelete'])->name('operadores.hardDelete');
 
@@ -70,8 +70,8 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
     });
 
     // PRODUCCIÓN
-    Route::middleware(['rol:4,6'])->group(function () {
-        Route::get('/AuxiliarControl', [DashboardController::class, 'index'])->name('AuxiliarControl');
+    Route::middleware(['rol:1,3'])->group(function () {
+        Route::get('/mi-rendimiento', [DashboardController::class, 'index'])->name('mi.rendimiento');
         Route::resource('aclimatacion', AclimatacionController::class);
         Route::resource('plantacion', PlantacionController::class);
         Route::resource('recuperacion', RecuperacionMermaController::class);

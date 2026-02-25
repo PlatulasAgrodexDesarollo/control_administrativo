@@ -19,7 +19,7 @@
         <div class="row g-4">
             
             {{-- MÓDULO 1: OPERADORES (Solo Admin) --}}
-            @if(Auth::user()->ID_Rol == 1)
+            @if(Auth::user()->ID_Rol == 4)
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm border-0 border-top border-5 border-success">
                     <div class="card-body">
@@ -39,7 +39,7 @@
             @endif
             
             {{-- MÓDULO 2: CATALOGO (Admin y Secretaria) --}}
-            @if(in_array(Auth::user()->ID_Rol, [1, 2]))
+            @if(in_array(Auth::user()->ID_Rol, [4, 5]))
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm border-0 border-top border-5 border-info">
                     <div class="card-body">
@@ -77,7 +77,7 @@
             @endif
 
             {{-- MÓDULOS OPERATIVOS (Admin y Auxiliar) --}}
-            @if(in_array(Auth::user()->ID_Rol, [1, 3]))
+            @if(in_array(Auth::user()->ID_Rol, [4, 6]))
             {{-- MÓDULO 4: ACLIMATACIÓN --}}
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm border-0 border-top border-5 border-danger">
@@ -116,7 +116,7 @@
             @endif
 
             {{-- MÓDULO 6: ANÁLISIS GLOBAL (Solo Admin) --}}
-            @if(Auth::user()->ID_Rol == 1)
+            @if(Auth::user()->ID_Rol == 4)
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm border-0 border-top border-5 border-dark">
                     <div class="card-body">
