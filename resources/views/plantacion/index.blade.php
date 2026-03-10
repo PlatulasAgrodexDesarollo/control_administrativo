@@ -3,156 +3,142 @@
 @section('content')
 
 <div class="container mt-4">
-    <h1>Registros de Plantación por Lote del mes </h1>
-
-    @if (session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-    <div class="mb-4">
-
-
-        <div class="d-flex gap-2 mb-3">
-
-            <input type="text"
-                id="filtroLotesInput"
-                class="form-control form-control-lg"
-                placeholder="Buscar por Variedad, Código, Nombre del Operador, Mes o Semana..."
-                value="{{ $filtro ?? '' }}">
-
-            <button type="button" onclick="aplicarFiltro()" class="btn btn-success flex-shrink-0">
-                <i class="bi bi-search"></i> Buscar
-            </button>
-        </div>
-
-
-
-        <div class="d-flex gap-2">
-
-            @if ($filtro || request('fecha_inicio'))
-            <a href="{{ route('plantacion.index') }}" class="btn btn-secondary">Limpiar Filtro</a>
-            @endif
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Registros de Plantación General</h1>
+        <a href="{{ route('plantacion.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Plantación
+        </a>
     </div>
 
-    <a href="{{ route('plantacion.create') }}" class="btn btn-primary mb-3">
-        <i class="bi bi-geo-alt-fill"></i> Registrar Nueva Plantación
-    </a>
-
-    {{-- INICIO DEL BUCLE DE AGRUPACIÓN POR LOTE --}}
-    @foreach ($plantaciones_agrupadas as $id_lote => $plantaciones_del_lote)
-
-    @php
-    // Se toma el primer registro del grupo para obtener datos del lote
-    $lote = $plantaciones_del_lote->first()->loteLlegada;
-    $variedad = $lote->variedad ?? null;
-
-    // --- AGREGADO: TRADUCCIÓN DE MESES ---
-    $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    $nombre_lote_traducido = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana ?? 'ID Lote #' . $id_lote);
-    // -------------------------------------
-
-    $total_recibidas = $lote->Cantidad_Plantas;
-    $total_sembradas = $plantaciones_del_lote->sum('cantidad_sembrada');
-    $total_perdidas = $plantaciones_del_lote->sum('cantidad_perdida');
-    $inventario_actual = $total_recibidas - $total_perdidas;
-    $restante_por_plantar = $inventario_actual - $total_sembradas;
-    $restante_por_plantar = max(0, $restante_por_plantar);
-    @endphp
-
-    <div class="card shadow mb-5">
-        {{-- ENCABEZADO DE GRUPO (Información Consolidada) --}}
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">
-                
-                LOTE DE INVENTARIO: <span class="fw-bold text-dark">{{ $nombre_lote_traducido }}</span>
-                <small>
-                    {{ $variedad->nombre ?? 'N/A' }}
-                    @if ($variedad && $variedad->codigo) [CÓDIGO: {{ $variedad->codigo }}] @endif
-                    / Recibidas: {{ number_format($total_recibidas, 0) }}
-                    / Total Sembrado: {{ number_format($total_sembradas, 0) }}
-                    / Pérdida Acumulada: <span class="text-warning">{{ number_format($total_perdidas, 0) }}</span>
-                    / **Inventario Actual:** <span class="badge bg-success">{{ number_format($inventario_actual, 0) }}</span>
-                    / **Restante :** <span class="badge bg-info">{{ number_format($restante_por_plantar, 0) }}</span>
-                </small>
-            </h5>
-        </div>
-
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-striped table-clientes mb-0">
-                    <thead>
-                        <tr>
-                            
-                            <th>Fecha</th>
-                            <th>Sembradas</th>
-                            <th>Pérdidas Totales</th>
-                            <th>Pérdidas (Sin Raíz)</th>
-                            <th>Pérdidas (Mal Formada/pequeña )</th>
-                            <th>Operador</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($plantaciones_del_lote as $p)
-                        <tr>
-                          
-                            <td>{{ \Carbon\Carbon::parse($p->Fecha_Plantacion)->format('d/m/Y') }}</td>
-
-                            <td>{{ number_format($p->cantidad_sembrada, 0) }}</td>
-
-                            {{-- Pérdida TOTAL (Suma de las categorías) --}}
-                            <td class="text-danger">{{ number_format($p->cantidad_perdida, 0) }}</td>
-
-                            {{-- Desglose de Pérdidas --}}
-                            <td>{{ number_format($p->sin_raiz, 0) }} und.</td>
-                            <td>{{ number_format($p->pequena_o_mal_formada, 0) }} und.</td>
-
-                            <td>
-                                {{ $p->operadorPlantacion->nombre ?? 'N/A' }}
-                                @if ($p->editado)
-                                <br>
-                                <span class="badge bg-warning">EDITADO</span>
-                                @endif
-                            </td>
-
-                            <td>
-                                <a href="{{ route('plantacion.edit', $p->ID_Plantacion) }}" class="btn btn-sm btn-warning bi bi-pencil"></a>
-                                <a href="{{ route('plantacion.show', $p->ID_Plantacion) }}" class="btn btn-sm btn-info "> ver</a>
-
-
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+    {{-- Buscador --}}
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <div class="d-flex gap-2">
+                <input type="text" id="filtroLotesInput" class="form-control form-control-lg" 
+                       placeholder="Buscar lote, variedad, código, operador o mes..." value="{{ $filtro ?? '' }}">
+                <button type="button" onclick="aplicarFiltro()" class="btn btn-success px-4">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                @if ($filtro)
+                    <a href="{{ route('plantacion.index') }}" class="btn btn-secondary">Limpiar</a>
+                @endif
             </div>
         </div>
     </div>
+
+    @foreach ($plantaciones_agrupadas as $id_lote => $plantaciones_del_lote)
+        @php
+            $lote = $plantaciones_del_lote->first()->loteLlegada;
+            $variedad = $lote->variedad ?? null;
+
+            // Traducción de Meses
+            $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            $nombre_lote_es = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana ?? 'Lote #' . $id_lote);
+
+            // Cálculos del Lote
+            $total_recibidas = $lote->Cantidad_Plantas;
+            $total_sembradas = $plantaciones_del_lote->sum('cantidad_sembrada');
+            $perdida_total = $total_recibidas - $total_sembradas;
+            
+            // Porcentaje Total del Lote
+            $porcentaje_total = ($total_sembradas > 0) ? ($perdida_total * 100) / $total_sembradas : 0;
+        @endphp
+
+        <div class="card shadow mb-5 border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        LOTE: <span class="text-warning">{{ $nombre_lote_es }}</span> 
+                        <span class="ms-3 badge bg-secondary text-uppercase">
+                            {{ $variedad->nombre ?? 'Sin Variedad' }} 
+                            @if($variedad && $variedad->codigo) 
+                                <span class="text-info ps-1">[{{ $variedad->codigo }}]</span> 
+                            @endif
+                        </span>
+                    </h5>
+                    <div class="text-end">
+                        <small class="d-block text-light">Total Recibidas:</small>
+                        <span class="h5 mb-0 fw-bold">{{ number_format($total_recibidas) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th class="text-start ps-4">Fecha</th>
+                                <th class="text-start">Operador Responsable</th>
+                                <th>Sembrada</th>
+                                <th>Diferencia</th>
+                                <th>% Pérdida</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-center">
+                            @foreach ($plantaciones_del_lote as $p)
+                            @php
+                                $diferencia_fila = $total_recibidas - $p->cantidad_sembrada;
+                                $porcentaje_fila = ($p->cantidad_sembrada > 0) ? ($diferencia_fila * 100) / $p->cantidad_sembrada : 0;
+                            @endphp
+                            <tr>
+                                <td class="text-start ps-4">{{ \Carbon\Carbon::parse($p->Fecha_Plantacion)->format('d/m/Y') }}</td>
+                                <td class="text-start fw-bold">
+                                    {{ $p->operadorPlantacion->nombre ?? 'N/A' }}
+                                </td>
+                                <td class="fw-bold text-success">{{ number_format($p->cantidad_sembrada) }}</td>
+                                
+                                {{-- Diferencia (Azul si es excedente, Rojo si es pérdida) --}}
+                                <td class="fw-bold {{ $diferencia_fila < 0 ? 'text-primary' : 'text-danger' }}">
+                                    {{ number_format($diferencia_fila) }}
+                                </td>
+
+                                {{-- Porcentaje de Pérdida (Rojo si > 6, Verde si <= 6) --}}
+                                <td class="fw-bold {{ $porcentaje_fila > 6 ? 'text-danger' : 'text-success' }}">
+                                    {{ number_format($porcentaje_fila, 2) }}%
+                                </td>
+
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ route('plantacion.edit', $p->ID_Plantacion) }}" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{{ route('plantacion.show', $p->ID_Plantacion) }}" class="btn btn-sm btn-info text-white">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-dark text-center">
+                            <tr>
+                                <td colspan="2" class="text-start ps-4 fw-bold">BALANCE FINAL DEL LOTE</td>
+                                <td class="fw-bold text-info">{{ number_format($total_sembradas) }}</td>
+                                <td class="fw-bold {{ $perdida_total < 0 ? 'text-primary' : 'text-warning' }}">
+                                    {{ number_format($perdida_total) }}
+                                </td>
+                                <td class="fw-bold {{ $porcentaje_total > 6 ? 'text-danger' : 'text-success' }}">
+                                    {{ number_format($porcentaje_total, 2) }}%
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
     @endforeach
-
-    @if(empty($plantaciones_agrupadas) || $plantaciones_agrupadas->isEmpty())
-    <p class="lead text-center">No hay registros de plantación en el invernadero.</p>
-    @endif
 </div>
-
 
 @section('custom_scripts')
 <script>
-
     function aplicarFiltro() {
-        var valorBusqueda = document.getElementById('filtroLotesInput').value;
+        var valor = document.getElementById('filtroLotesInput').value;
         var rutaIndex = "{{ route('plantacion.index') }}";
-
-        if (valorBusqueda) {
-            var url = rutaIndex + '?q=' + encodeURIComponent(valorBusqueda);
-            window.location.href = url;
-        } else {
-            window.location.href = rutaIndex;
-        }
+        window.location.href = valor ? (rutaIndex + '?q=' + encodeURIComponent(valor)) : rutaIndex;
     }
 </script>
 @endsection
