@@ -14,20 +14,30 @@ class EndurecimientoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        // Cargamos los datos con sus relaciones
-        $endurecimientos = Endurecimiento::with(['responsable', 'lotes'])
-            ->orderBy('Fecha_Ingreso', 'desc')
+ public function index()
+{
+    // 1. Traemos los endurecimientos activos
+    $endurecimientos = DB::table('endurecimientos as e')
+        ->leftJoin('operadores as o', 'e.Operador_Responsable', '=', 'o.ID_Operador')
+        ->select('e.*', 'o.nombre as responsable_nombre')
+        ->orderBy('e.Fecha_Ingreso', 'desc')
+        ->get();
+
+    // 2. Cargamos los detalles de cada uno
+    foreach ($endurecimientos as $e) {
+        $e->detalles = DB::table('endurecimiento_variedad as ev')
+            ->join('variedades as v', 'ev.variedad_id', '=', 'v.ID_Variedad')
+            ->join('llegada_planta as lp', 'ev.ID_llegada', '=', 'lp.ID_Llegada')
+            ->where('ev.endurecimiento_id', $e->ID_Endurecimiento)
+            ->select('v.nombre as var_nombre', 'v.codigo as var_codigo', 'ev.cantidad_plantas', 'lp.Fecha_Llegada', 'lp.ID_Llegada')
             ->get();
-
-        $ruta = route('dashboard'); 
-        $texto_boton = "Regresar a Módulos";
-
-        // ENVIAMOS LAS VARIABLES A LA VISTA
-        return view('endurecimiento.index', compact('endurecimientos', 'ruta', 'texto_boton'));
     }
 
+    $ruta = route('dashboard'); 
+    $texto_boton = "Regresar a Módulos";
+
+    return view('endurecimiento.index', compact('endurecimientos', 'ruta', 'texto_boton'));
+}
     // Lógica para iniciar endurecimiento desde una Aclimatación Cerrada
     public function iniciarDesdeAclimatacion(Aclimatacion $aclimatacion)
     {
@@ -64,104 +74,131 @@ class EndurecimientoController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
-    {
-        $aclimataciones_listas = \App\Models\Aclimatacion::whereNotNull('fecha_cierre')
-            ->with('lotesAclimatados')
-            ->get()
-            ->map(function ($acli) {
-                // Agrupamos nombres únicos para evitar repeticiones como "Lote 2, Lote 2"
-                $nombresUnicos = $acli->lotesAclimatados->pluck('nombre_lote_semana')->unique()->implode(', ');
+  public function create()
+{
+    $aclimataciones_listas = DB::table('aclimatacion_variedad as av')
+        ->join('aclimatacion as a', 'av.aclimatacion_id', '=', 'a.ID_Aclimatacion')
+        ->join('variedades as v', 'av.variedad_id', '=', 'v.ID_Variedad')
+        ->whereNotNull('av.fecha_finalizado_variedad')
+        ->whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+                ->from('endurecimiento_variedad as ev')
+                ->join('endurecimientos as e', 'ev.endurecimiento_id', '=', 'e.ID_Endurecimiento')
+                ->whereRaw('ev.ID_llegada = av.ID_llegada')
+                ->where('e.Estado_General', 'En Proceso');
+        })
+        ->select(
+            'av.id_aclimatacion_va as pivot_id',
+            'av.ID_llegada',
+            'v.nombre as variedad_nombre',
+            'v.codigo as variedad_codigo',
+            'av.cantidad_plantas',
+            'av.merma_acumulada_lote'
+        )
+        ->get()
+        ->map(function ($item) {
+            $loteOriginal = \App\Models\LlegadaPlanta::find($item->ID_llegada);
+            
+            $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            
+            $nombre_lote = $loteOriginal ? $loteOriginal->nombre_lote_semana : "Lote #" . $item->ID_llegada;
+            $nombre_lote_es = str_ireplace($meses_en, $meses_es, $nombre_lote);
+            
+            $obj = new \stdClass();
+            $obj->pivot_id = $item->pivot_id;
+            $obj->nombre_lote_semana = $nombre_lote_es;
+            $obj->variedad_nombre = $item->variedad_nombre;
+            $obj->variedad_codigo = $item->variedad_codigo;
+            
+            // ESTAS SON LAS PROPIEDADES QUE TU VISTA NECESITA:
+            $obj->pivot_cantidad_inicial_lote = $item->cantidad_plantas;
+            $obj->pivot_merma_acumulada_lote = $item->merma_acumulada_lote ?? 0;
+            
+            return $obj;
+        });
 
-                // Limitamos a 25 caracteres para móviles (muy corto para que no falle)
-                $acli->nombre_corto = \Illuminate\Support\Str::limit($nombresUnicos, 25);
-                return $acli;
-            });
+    $operadores = \App\Models\Operador::where('estado', 1)->get(); 
+    $ruta = route('endurecimiento.index');
+    $texto_boton = "Volver al listado";
 
-        $operadores = \App\Models\Operador::all();
-        $ruta = route('endurecimiento.index');
-        $texto_boton = "Volver al listado";
-
-        return view('endurecimiento.create', compact('aclimataciones_listas', 'operadores', 'ruta', 'texto_boton'));
-    }
-
+    return view('endurecimiento.create', compact('aclimataciones_listas', 'operadores', 'ruta', 'texto_boton'));
+}
     /**
      * Store a newly created resource in storage.
      */
-  public function store(Request $request)
+
+public function store(Request $request)
 {
     $request->validate([
-        'aclimatacion_id' => 'required',
+        'aclimatacion_variedad_id' => 'required', 
         'Fecha_Ingreso' => 'required|date',
         'Operador_Responsable' => 'required'
     ]);
 
     DB::beginTransaction();
     try {
-        // 1. Buscamos la aclimatación de origen
-        $acli = \App\Models\Aclimatacion::with('lotesAclimatados')->find($request->aclimatacion_id);
+        // 1. Buscamos la variedad en el origen con su aclimatacion_id real
+        $fuente = DB::table('aclimatacion_variedad')
+            ->where('id_aclimatacion_va', $request->aclimatacion_variedad_id)
+            ->first();
+        
+        if (!$fuente) return back()->with('error', 'Origen no encontrado.');
 
-        if (!$acli) {
-            return back()->with('error', 'No se encontró la etapa de aclimatación de origen.');
-        }
+        $stock_neto = $fuente->cantidad_plantas - ($fuente->merma_acumulada_lote ?? 0);
 
-        $total_entrada_maestra = (int) $acli->cantidad_final; 
+        // 2. BUSQUEDA EXACTA: 
+        $registroExistente = DB::table('endurecimiento_variedad as ev')
+            ->join('endurecimientos as e', 'ev.endurecimiento_id', '=', 'e.ID_Endurecimiento')
+            ->where('ev.aclimatacion_id', $fuente->aclimatacion_id) // <--- Aquí está la precisión
+            ->where('e.Estado_General', 'En Proceso')
+            ->select('e.ID_Endurecimiento')
+            ->first();
 
-        // 3. Crear cabecera de Endurecimiento con el DATO MAESTRO
-        $endurecimiento = \App\Models\Endurecimiento::create([
-            'Fecha_Ingreso'        => $request->Fecha_Ingreso,
-            'cantidad_inicial'     => $total_entrada_maestra, // <--- IGUAL AL INDEX
-            'Operador_Responsable' => $request->Operador_Responsable,
-            'Estado_General'       => 'En Proceso',
-            'Observaciones'        => $request->Observaciones
-        ]);
-
-        // 4. Guardar el detalle de cada lote
-        foreach ($acli->lotesAclimatados as $lote) {
-            
-            // Buscamos los datos del pivot de origen para las mermas pasadas
-            $datos_acli_pivot = DB::table('aclimatacion_variedad')
-                ->where('aclimatacion_id', $acli->ID_Aclimatacion)
-                ->where('ID_llegada', $lote->ID_Llegada)
-                ->where('variedad_id', $lote->pivot->variedad_id)
-                ->first();
-
-            // Sumatoria de mermas de operadores en plantación
-            $m_plantacion_total = DB::table('plantacion')
-                ->where('ID_Llegada', $lote->ID_Llegada)
-                ->where('ID_Variedad', $lote->pivot->variedad_id)
-                ->sum('cantidad_perdida');
-
-            // CÁLCULO DEL STOCK FINAL DEL LOTE (Igual a la lógica de tu variedades_resumen del Index)
-            $cant_orig_lote = $datos_acli_pivot->cantidad_inicial_lote ?? 0;
-            $m_aclim_lote   = $datos_acli_pivot->merma_acumulada_lote ?? 0;
-            
-            // Stock Neto del lote = Inicial - Merma Acumulada
-            $stock_final_lote_real = $cant_orig_lote - $m_aclim_lote;
-
-            // 5. INSERTAR EN LA BASE DE DATOS
-            DB::table('endurecimiento_variedad')->insert([
-                'endurecimiento_id'         => $endurecimiento->ID_Endurecimiento,
-                'ID_llegada'                => $lote->ID_Llegada,
-                'variedad_id'               => $lote->pivot->variedad_id,
-                'merma_inicial_plantacion'  => (int) $m_plantacion_total,
-                'merma_aclimatacion_pasada' => (int) $m_aclim_lote,
-                'cantidad_inicial_lote'     => $cant_orig_lote,
-                'stock_entrada_etapa'       => $stock_final_lote_real,  
-                'cantidad_plantas'          => $stock_final_lote_real,
-                'merma_acumulada_lote'      => 0,
-                'Estado_Lote'               => 'Normal'
+        if ($registroExistente) {
+            // SI EXISTE: Añadimos la variedad al mismo grupo
+            $id_maestro = $registroExistente->ID_Endurecimiento;
+            DB::table('endurecimientos')->where('ID_Endurecimiento', $id_maestro)->increment('cantidad_inicial', $stock_neto);
+        } else {
+            // SI NO EXISTE: Creamos el registro maestro por primera vez
+            $id_maestro = DB::table('endurecimientos')->insertGetId([
+                'Fecha_Ingreso'        => $request->Fecha_Ingreso,
+                'cantidad_inicial'     => $stock_neto,
+                'Operador_Responsable' => $request->Operador_Responsable,
+                'Estado_General'       => 'En Proceso',
+                'created_at'           => now(),
+                'updated_at'           => now()
             ]);
         }
 
+        // 3. INSERTAMOS EL DETALLE CON EL ID DE ACLIMATACIÓN
+        // Ahora sí guardamos el aclimatacion_id para que el sistema "sepa" la procedencia
+        DB::table('endurecimiento_variedad')->updateOrInsert(
+            [
+                'endurecimiento_id' => $id_maestro,
+                'variedad_id'       => $fuente->variedad_id,
+                'ID_llegada'        => $fuente->ID_llegada,
+            ],
+            [
+                'aclimatacion_id'           => $fuente->aclimatacion_id, // <--- Dato guardado con éxito
+                'merma_aclimatacion_pasada' => (int)($fuente->merma_acumulada_lote ?? 0),
+                'cantidad_inicial_lote'     => $fuente->cantidad_plantas,
+                'stock_entrada_etapa'       => $stock_neto,  
+                'cantidad_plantas'          => $stock_neto,
+                'merma_acumulada_lote'      => 0,
+                'Estado_Lote'               => 'Normal'
+            ]
+        );
+
         DB::commit();
-        return redirect()->route('endurecimiento.index')->with('success', 'Traspaso exitoso: Datos sincronizados con Aclimatación.');
+        return redirect()->route('endurecimiento.index')->with('success', 'Variedad integrada correctamente al lote de origen.');
 
     } catch (\Exception $e) {
         DB::rollBack();
-        dd("Error técnico: " . $e->getMessage());
+        dd("Falla en la base de datos. ¿Ya agregaste la columna aclimatacion_id?: ", $e->getMessage());
     }
 }
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -319,4 +356,52 @@ public function finalizarEtapa(Request $request, $id)
         return back()->with('error', 'Error al procesar el cierre: ' . $e->getMessage());
     }
 }
+
+public function finalizarVariedad(Request $request, $id)
+{
+    $request->validate([
+        'id_llegada' => 'required',
+        'id_variedad' => 'required',
+        'merma_final_individual' => 'required|numeric|min:0'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // 1. Actualizamos la variedad específica en la tabla intermedia
+        DB::table('endurecimiento_variedad')
+            ->where('endurecimiento_id', $id)
+            ->where('ID_llegada', $request->id_llegada)
+            ->where('variedad_id', $request->id_variedad)
+            ->update([
+                'merma_seleccion_final' => $request->merma_final_individual,
+                'Estado_Lote' => 'Finalizado'
+            ]);
+
+        // 2. Verificamos si aún quedan variedades sin finalizar en este endurecimiento
+        $pendientes = DB::table('endurecimiento_variedad')
+            ->where('endurecimiento_id', $id)
+            ->where('Estado_Lote', '!=', 'Finalizado')
+            ->count();
+
+        // 3. Si ya se terminaron todas, cerramos el endurecimiento general
+        if ($pendientes === 0) {
+            DB::table('endurecimientos')
+                ->where('ID_Endurecimiento', $id)
+                ->update([
+                    'Estado_General' => 'Finalizado',
+                    'Fecha_Cierre' => now()
+                ]);
+        }
+
+        DB::commit();
+        return back()->with('success', 'Variedad cerrada correctamente.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Error al procesar el cierre: ' . $e->getMessage());
+    }
+}
+
+
+
 }
