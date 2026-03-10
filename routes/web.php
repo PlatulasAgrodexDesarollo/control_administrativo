@@ -38,6 +38,7 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
     Route::resource('recuperacion', RecuperacionMermaController::class);
 
     // ACLIMATACIÓN
+    Route::post('/aclimatacion/{aclimatacion}/finalizar-variedad', [AclimatacionController::class, 'finalizarVariedad'])->name('aclimatacion.finalizar_variedad');
     Route::put('aclimatacion/{aclimatacion}/cerrar', [AclimatacionController::class, 'cerrarEtapa'])->name('aclimatacion.cerrar');
     Route::post('aclimatacion/{aclimatacion}/registrar-merma-lote', [AclimatacionController::class, 'registrarMermaLote'])->name('aclimatacion.registrar_merma_lote');
     Route::resource('aclimatacion', AclimatacionController::class);
@@ -48,6 +49,7 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
         Route::post('/{id}/finalizar', [EndurecimientoController::class, 'finalizarEtapa'])->name('endurecimiento.finalizar');
     });
     Route::resource('endurecimiento', EndurecimientoController::class);
+    Route::post('/endurecimiento/{id}/finalizar-variedad', [EndurecimientoController::class, 'finalizarVariedad'])->name('endurecimiento.finalizarVariedad');
 
     // REPORTES Y PLAGAS
     Route::get('/reporte-mensual', [ReporteController::class, 'reporteMensual'])->name('reporte.mensual');
@@ -70,7 +72,7 @@ Route::middleware(['sincro.sesion', 'prevent-back'])->group(function () {
     });
 
     // PRODUCCIÓN
-    Route::middleware(['rol:1,3'])->group(function () {
+    Route::middleware(['rol:4,6'])->group(function () {
         Route::get('/mi-rendimiento', [DashboardController::class, 'index'])->name('mi.rendimiento');
         Route::resource('aclimatacion', AclimatacionController::class);
         Route::resource('plantacion', PlantacionController::class);
