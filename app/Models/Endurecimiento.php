@@ -14,6 +14,7 @@ class Endurecimiento extends Model
 
 public function lotes()
 {
+    // Añadimos 'variedad' a la carga para que Laravel sepa cómo unir las 3 tablas
     return $this->belongsToMany(LlegadaPlanta::class, 'endurecimiento_variedad', 'endurecimiento_id', 'ID_llegada')
                 ->withPivot([
                     'variedad_id', 
@@ -24,7 +25,9 @@ public function lotes()
                     'cantidad_plantas',
                     'merma_acumulada_lote',
                     'Estado_Lote'
-                ]);
+                ])
+                ->join('variedades', 'endurecimiento_variedad.variedad_id', '=', 'variedades.ID_Variedad')
+                ->select('llegada_planta.*', 'variedades.nombre as variedad_nombre', 'variedades.codigo as variedad_codigo');
 }
     public function responsable()
     {
