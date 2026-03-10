@@ -337,4 +337,23 @@ public function show(Aclimatacion $aclimatacion)
 
         return back()->with('success', "Merma de {$request->cantidad_merma} unidades registrada exitosamente para el lote.");
     }
+
+    public function finalizarVariedad(Request $request, $id)
+{
+    $aclimatacion = Aclimatacion::findOrFail($id);
+    $lote_id = $request->input('lote_id');
+    $variedad_id = $request->input('variedad_id');
+
+    
+    DB::table('aclimatacion_variedad')
+        ->where('aclimatacion_id', $id)
+        ->where('ID_llegada', $lote_id)
+        ->where('variedad_id', $variedad_id)
+        ->update([
+            'fecha_finalizado_variedad' => now(),
+            'updated_at' => now()
+        ]);
+
+    return redirect()->back()->with('success', 'Variedad finalizada correctamente en este lote.');
+}
 }
