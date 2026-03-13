@@ -85,84 +85,94 @@
 
     {{-- DETALLE INDIVIDUAL --}}
     <div class="mb-3 mt-4">
-        <h4 class="fw-bold text-dark"><i class="bi bi-list-check me-2"></i>Detalle Individual por Lotes</h4>
-    </div>
-    <div class="card shadow-sm border-0 overflow-hidden mb-5">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center border">
-                <thead class="bg-dark text-white small text-uppercase">
-                    <tr>
-                        <th class="ps-4 py-3 text-start">Variedad / Código</th>
-                        <th class="bg-primary bg-opacity-10 text-primary">Ingreso</th>
-                        <th class="border-start">M. Plant.</th>
-                        <th class="border-start">Stock Plant.</th>
-                        <th class="border-start">M. Aclim.</th>
-                        <th class="border-start">Stock Aclim.</th>
-                        <th class="border-start">M. Endur.</th>
-                        <th class="border-start">M. Selecc.</th>
-                        <th class="bg-success text-white fw-bold pe-4 text-end">Stock Final</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $ultimaVariedad = null; @endphp
-                    @forelse($reporte as $v)
+    <h4 class="fw-bold text-dark"><i class="bi bi-list-check me-2"></i>Detalle Individual por Lotes</h4>
+</div>
+<div class="card shadow-sm border-0 overflow-hidden mb-5">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-center border">
+            <thead class="bg-dark text-white small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3 text-start">Variedad / Código</th>
+                    <th class="bg-primary bg-opacity-10 text-primary">Ingreso</th>
+                    <th class="border-start">M. Plant.</th>
+                    <th class="border-start">Stock Plant.</th>
+                    <th class="border-start">M. Aclim.</th>
+                    <th class="border-start">Stock Aclim.</th>
+                    <th class="border-start">M. Endur.</th>
+                    <th class="border-start">Stock Endur.</th> {{-- Agregado --}}
+                    <th class="border-start">M. Selecc.</th>
+                    <th class="bg-success text-white fw-bold pe-4 text-end">Stock Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php $ultimaVariedad = null; @endphp
+                @forelse($reporte as $v)
+                @php 
+                    $cambioVariedad = ($ultimaVariedad !== null && $ultimaVariedad !== $v->variedad);
+                    $ultimaVariedad = $v->variedad;
+                    
+                    // Calculamos los stocks intermedios
+                    $stockAclim = $v->total_sembrado - $v->m_aclim;
+                    $stockEndur = $stockAclim - $v->m_endur;
+                @endphp
+                <tr @if($cambioVariedad) style="border-top: 3px solid #dee2e6 !important;" @endif>
+                    <td class="ps-4 text-start">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle me-3 shadow-sm"
+                                style="width: 20px; height: 20px; background-color: {{ $v->color ?? '#cccccc' }}; border: 2px solid #6c757d;">
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">{{ $v->variedad }}</div>
+                                <small class="text-muted text-uppercase">{{ $v->codigo }}</small>
+                                <small class="text-secondary d-block mt-1" style="font-size: 0.7rem;">
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    {{ $v->fecha_inicio ? \Carbon\Carbon::parse($v->fecha_inicio)->format('d/m/Y') : 'S/F' }}
+                                </small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="bg-primary bg-opacity-10 text-primary fw-bold">{{ number_format($v->total_ingreso) }}</td>
+                    <td class="text-danger small">
+                        {{ number_format($v->m_plant) }}
+                        @if($v->m_recuperada > 0)
+                        <div class="text-success fw-bold" style="font-size: 0.65rem;">
+                            +{{ number_format($v->m_recuperada) }} Recup.
+                        </div>
+                        @endif
+                    </td>
+                    <td class="fw-bold text-dark">{{ number_format($v->total_sembrado) }}</td>
+                    <td class="bg-danger bg-opacity-10 text-danger fw-bold">{{ number_format($v->m_aclim) }}</td>
+                    <td class="bg-light fw-bold text-dark">{{ number_format($stockAclim) }}</td>
+                    <td class="text-danger small">{{ number_format($v->m_endur) }}</td>
+                    <td class="bg-light fw-bold text-dark">{{ number_format($stockEndur) }}</td> {{-- Agregado --}}
+                    <td class="text-danger small">{{ number_format($v->m_selec) }}</td>
+                    <td class="bg-success text-white fw-bold pe-4 text-end">
+                        {{ number_format($v->saldo_neto) }}
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="10" class="text-center py-5">No hay registros.</td></tr> {{-- Colspan a 10 --}}
+                @endforelse
+            </tbody>
+            <tfoot class="table-dark fw-bold border-top border-white">
+                <tr>
+                    <td class="ps-4 text-start">TOTALES DEL PERIODO</td>
+                    <td>{{ number_format($totales['ingreso']) }}</td>
+                    <td>{{ number_format($totales['m_plant']) }}</td>
+                    <td class="text-info">{{ number_format($totales['sembrado']) }}</td>
+                    <td>{{ number_format($totales['m_aclim']) }}</td>
                     @php 
-                        $cambioVariedad = ($ultimaVariedad !== null && $ultimaVariedad !== $v->variedad);
-                        $ultimaVariedad = $v->variedad;
+                        $totalStockAclim = $totales['sembrado'] - $totales['m_aclim'];
+                        $totalStockEndur = $totalStockAclim - $totales['m_endur'];
                     @endphp
-                    <tr @if($cambioVariedad) style="border-top: 3px solid #dee2e6 !important;" @endif>
-                        <td class="ps-4 text-start">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle me-3 shadow-sm"
-                                    style="width: 20px; height: 20px; background-color: {{ $v->color ?? '#cccccc' }}; border: 2px solid #6c757d;">
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark">{{ $v->variedad }}</div>
-                                    <small class="text-muted text-uppercase">{{ $v->codigo }}</small>
-                                    <small class="text-secondary d-block mt-1" style="font-size: 0.7rem;">
-                                        <i class="bi bi-calendar3 me-1"></i>
-                                        {{ $v->fecha_inicio ? \Carbon\Carbon::parse($v->fecha_inicio)->format('d/m/Y') : 'S/F' }}
-                                    </small>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="bg-primary bg-opacity-10 text-primary fw-bold">{{ number_format($v->total_ingreso) }}</td>
-                        <td class="text-danger small">
-                            {{ number_format($v->m_plant) }}
-                            @if($v->m_recuperada > 0)
-                            <div class="text-success fw-bold" style="font-size: 0.65rem;">
-                                +{{ number_format($v->m_recuperada) }} Recup.
-                            </div>
-                            @endif
-                        </td>
-                        <td class="fw-bold text-dark">{{ number_format($v->total_sembrado) }}</td>
-                        <td class="bg-danger bg-opacity-10 text-danger fw-bold">{{ number_format($v->m_aclim) }}</td>
-                        <td class="bg-light fw-bold text-dark">{{ number_format($v->total_sembrado - $v->m_aclim) }}</td>
-                        <td class="text-danger small">{{ number_format($v->m_endur) }}</td>
-                        <td class="text-danger small">{{ number_format($v->m_selec) }}</td>
-                        <td class="bg-success text-white fw-bold pe-4 text-end">
-                            {{ number_format($v->saldo_neto) }}
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="9" class="text-center py-5">No hay registros.</td></tr>
-                    @endforelse
-                </tbody>
-                <tfoot class="table-dark fw-bold border-top border-white">
-                    <tr>
-                        <td class="ps-4 text-start">TOTALES DEL PERIODO</td>
-                        <td>{{ number_format($totales['ingreso']) }}</td>
-                        <td>{{ number_format($totales['m_plant']) }}</td>
-                        <td class="text-info">{{ number_format($totales['sembrado']) }}</td>
-                        <td>{{ number_format($totales['m_aclim']) }}</td>
-                        <td class="text-info">{{ number_format($totales['sembrado'] - $totales['m_aclim']) }}</td>
-                        <td>{{ number_format($totales['m_endur']) }}</td>
-                        <td>{{ number_format($totales['m_selec']) }}</td>
-                        <td class="bg-success text-white fs-5 pe-4 text-end">{{ number_format($totales['saldo']) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+                    <td class="text-info">{{ number_format($totalStockAclim) }}</td>
+                    <td>{{ number_format($totales['m_endur']) }}</td>
+                    <td class="text-info">{{ number_format($totalStockEndur) }}</td> {{-- Agregado --}}
+                    <td>{{ number_format($totales['m_selec']) }}</td>
+                    <td class="bg-success text-white fs-5 pe-4 text-end">{{ number_format($totales['saldo']) }}</td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 </div>
 @endsection
