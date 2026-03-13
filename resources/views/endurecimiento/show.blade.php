@@ -29,19 +29,8 @@
 
         $stock_general_planta += ($entrada_neta - $merma_actual - $merma_seleccion_final);
     }
-
-    // --- LÓGICA DEL CONTADOR DE DÍAS ---
-    $fecha_ingreso = \Carbon\Carbon::parse($endurecimiento->Fecha_Ingreso)->startOfDay();
-
-    if($endurecimiento->Estado_General == 'Finalizado' && $endurecimiento->Fecha_Cierre) {
-        $fecha_final = \Carbon\Carbon::parse($endurecimiento->Fecha_Cierre)->startOfDay();
-        $dias_transcurridos = (int) $fecha_ingreso->diffInDays($fecha_final);
-    } else {
-        $dias_transcurridos = (int) $fecha_ingreso->diffInDays(now()->startOfDay());
-    }
     @endphp
 
-    {{-- TARJETA DE RESUMEN SUPERIOR --}}
     <div class="row mb-4">
         <div class="col-md-12 text-start">
             <div class="card shadow-sm border-0 {{ $endurecimiento->Estado_General == 'Finalizado' ? 'bg-success' : 'bg-primary' }} text-white">
@@ -51,7 +40,7 @@
                             <i class="bi bi-clipboard-data me-2"></i>Detalle de Inventario: Endurecimiento
                             @if($endurecimiento->Estado_General == 'Finalizado') (CERRADO) @endif
                         </h5>
-                        <h2 class="display-6 fw-bold m-0">{{ number_format($stock_general_planta, 0, '.', ',') }} <small class="fs-6 text-white-50">und. @if($endurecimiento->Estado_General == 'Finalizado') finales @else en nave @endif</small></h2>
+                        <h2 class="display-6 fw-bold m-0">{{ number_format($stock_general_planta, 0, '.', ',') }} <small class="fs-6 text-white-50">und. actuales</small></h2>
                     </div>
                     <div class="text-end">
                         <div class="btn-group mb-2 shadow-sm">
@@ -61,17 +50,9 @@
                             </button>
                             @endif
                         </div>
-
-                        <span class="badge bg-white {{ $endurecimiento->Estado_General == 'Finalizado' ? 'text-success' : 'text-primary' }} px-3 py-2 mb-1 fw-bold d-block shadow-sm">
-                            <i class="bi bi-alarm me-1"></i> DURACIÓN: {{ $dias_transcurridos }} DÍAS
-                        </span>
                         <div class="small fw-bold text-uppercase d-block" style="opacity: 0.8; font-size: 0.65rem;">
-                            @if($endurecimiento->Estado_General == 'Finalizado')
-                            Cerrado el: {{ \Carbon\Carbon::parse($endurecimiento->Fecha_Cierre)->translatedFormat('d \d\e F, Y') }}
-                            @else
-                            Ingreso: {{ $fecha_ingreso->translatedFormat('d \d\e F \d\e Y') }}
-                            @endif
-                            | Total Recibido: {{ number_format($total_entrada_global, 0, '.', ',') }} und.
+                            Ingreso General: {{ \Carbon\Carbon::parse($endurecimiento->Fecha_Ingreso)->translatedFormat('d \d\e F \d\e Y') }}
+                            | Recibido: {{ number_format($total_entrada_global, 0, '.', ',') }} und.
                         </div>
                     </div>
                 </div>
@@ -82,61 +63,64 @@
     <div class="card shadow-sm border-0 mb-4 text-start">
         <div class="card-body">
             <h6 class="mb-4 text-uppercase small fw-bold text-secondary border-bottom pb-2">
-                Historial de Mermas e Inventario por Lote:
+                Historial de Mermas e Inventario por Variedad:
             </h6>
 
             <ul class="list-unstyled border rounded bg-white overflow-hidden text-start">
                 @foreach ($lotes_detallados as $lote)
                 @php
                 $datos_origen = DB::table('aclimatacion_variedad')
-                ->where('ID_llegada', $lote->ID_Llegada)
-                ->where('variedad_id', $lote->pivot->variedad_id)
-                ->first();
+                    ->where('ID_llegada', $lote->ID_Llegada)
+                    ->where('variedad_id', $lote->pivot->variedad_id)
+                    ->first();
 
                 $nombre_lote_es = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana);
-
+                
                 $m_plantacion = (int) ($datos_origen->merma_inicial_plantacion ?? $lote->pivot->merma_inicial_plantacion ?? 0);
                 if($m_plantacion == 0) {
-                $m_plantacion = (int) DB::table('plantacion')
-                ->where('ID_Llegada', $lote->ID_Llegada)
-                ->where('ID_Variedad', $lote->pivot->variedad_id)
-                ->sum('cantidad_perdida');
+                    $m_plantacion = (int) DB::table('plantacion')->where('ID_Llegada', $lote->ID_Llegada)->where('ID_Variedad', $lote->pivot->variedad_id)->sum('cantidad_perdida');
                 }
-
+                
                 $m_aclimatacion = (int) ($datos_origen->merma_acumulada_lote ?? 0);
                 $entrada_neta_etapa = (int) ($datos_origen ? ($datos_origen->cantidad_inicial_lote - $m_aclimatacion) : 0);
-
+                
                 $merma_endurecimiento = (int) ($lote->pivot->merma_acumulada_lote ?? 0);
                 $merma_seleccion_final = (int) ($lote->pivot->merma_seleccion_final ?? 0);
-
+                
                 $stock_actual_lote = $entrada_neta_etapa - $merma_endurecimiento - $merma_seleccion_final;
-                $stock_color = $stock_actual_lote > 0 ? 'text-success' : 'text-danger';
+
+                // --- CÁLCULO DE PORCENTAJE DE PÉRDIDA ---
+                $porcentaje_v = ($entrada_neta_etapa > 0) ? ($merma_endurecimiento * 100) / $entrada_neta_etapa : 0;
+
+                $is_cerrado_variedad = ($lote->pivot->Estado_Lote == 'Finalizado');
+                
+                // RED DE SEGURIDAD PARA CONTADOR: Si created_at es null, usa fecha de ingreso general
+                $fecha_inicio_real = $lote->pivot->created_at 
+                    ? \Carbon\Carbon::parse($lote->pivot->created_at) 
+                    : \Carbon\Carbon::parse($endurecimiento->Fecha_Ingreso);
+                
+                $fecha_final_conteo = $lote->pivot->fecha_finalizado 
+                    ? \Carbon\Carbon::parse($lote->pivot->fecha_finalizado) 
+                    : \Carbon\Carbon::now();
+                
+                $dias_variedad = (int) $fecha_inicio_real->startOfDay()->diffInDays($fecha_final_conteo->startOfDay());
 
                 $modalId = "modalM_" . $lote->ID_Llegada . "_" . $lote->pivot->variedad_id;
                 $modalCInd = "modalCInd_" . $lote->ID_Llegada . "_" . $lote->pivot->variedad_id;
-                $is_cerrado_variedad = ($lote->pivot->Estado_Lote == 'Finalizado');
                 @endphp
 
                 <li class="py-3 px-4 border-bottom {{ $is_cerrado_variedad ? 'bg-light' : 'hover-bg-light' }}">
                     <div class="row align-items-center">
-                        <div class="col-md-4">
+                        <div class="col-md-4 text-start">
                             <strong class="text-dark d-block fs-6 text-uppercase">{{ $nombre_lote_es }}</strong>
-                            <div class="small text-muted mb-1">
-                                <i class="bi bi-calendar3 me-1"></i>
-                                @php
-                                    $fecha_inicio_plantacion = DB::table('plantacion')
-                                        ->where('ID_Llegada', $lote->ID_Llegada)
-                                        ->where('ID_Variedad', $lote->pivot->variedad_id)
-                                        ->min('Fecha_Plantacion');
-                                @endphp
-                                {{ $fecha_inicio_plantacion ? \Carbon\Carbon::parse($fecha_inicio_plantacion)->format('d/m/Y') : 'Sin fecha' }}
-                            </div>
-
                             <div class="mt-1">
                                 <span class="badge bg-light text-secondary border small">variedad:{{ $lote->variedad->nombre ?? 'N/A' }}</span>
                                 <span class="badge bg-light text-primary border small">codigo:{{ $lote->variedad->codigo ?? 'N/A' }}</span>
+                                <span class="badge {{ $is_cerrado_variedad ? 'bg-secondary' : 'bg-dark' }} small">
+                                    <i class="bi bi-stopwatch me-1"></i>{{ $dias_variedad }} días
+                                </span>
                                 @if($is_cerrado_variedad)
-                                    <span class="badge bg-success small"><i class="bi bi-check-circle me-1"></i>CERRADO</span>
+                                    <span class="badge bg-success small"><i class="bi bi-check-circle me-1"></i>LISTO</span>
                                 @endif
                             </div>
                         </div>
@@ -144,7 +128,7 @@
                         <div class="col-md-8 text-md-end">
                             <div class="d-flex flex-wrap justify-content-between justify-content-md-end align-items-center mb-3">
                                 <div class="text-center px-2 flex-fill">
-                                    <small class="text-muted d-block fw-bold" style="font-size: 0.60rem;">ENTRADA ETAPA</small>
+                                    <small class="text-muted d-block fw-bold" style="font-size: 0.60rem;">ENTRADA</small>
                                     <span class="fw-bold text-primary fs-6">{{ number_format($entrada_neta_etapa, 0) }}</span>
                                 </div>
 
@@ -153,9 +137,16 @@
                                     <span class="fw-bold text-danger fs-6">{{ number_format($merma_endurecimiento, 0) }}</span>
                                 </div>
 
-                                <div class="text-center px-2 border-start flex-fill" style="min-width: 100px;">
-                                    <small class="text-muted d-block fw-bold" style="font-size: 0.60rem;">STOCK LOTE</small>
-                                    <div class="fw-bold {{ $stock_color }} fs-5">{{ number_format($stock_actual_lote, 0) }}</div>
+                                <div class="text-center px-2 border-start flex-fill">
+                                    <small class="text-muted d-block fw-bold" style="font-size: 0.60rem;">% PÉRDIDA</small>
+                                    <span class="fw-bold {{ $porcentaje_v > 6 ? 'text-danger' : 'text-success' }} fs-6">
+                                        {{ number_format($porcentaje_v, 2) }}%
+                                    </span>
+                                </div>
+
+                                <div class="text-center px-2 border-start flex-fill">
+                                    <small class="text-muted d-block fw-bold" style="font-size: 0.60rem;">STOCK ACTUAL</small>
+                                    <div class="fw-bold {{ $stock_actual_lote > 0 ? 'text-success' : 'text-danger' }} fs-5">{{ number_format($stock_actual_lote, 0) }}</div>
                                 </div>
 
                                 <div class="ms-md-3 d-flex gap-2 mt-2 mt-md-0 w-100 w-md-auto justify-content-center">
@@ -163,7 +154,7 @@
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                                         <i class="bi bi-plus-circle me-1"></i>Merma
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#{{ $modalCInd }}">
+                                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#{{ $modalCInd }}">
                                         <i class="bi bi-door-closed me-1"></i>Cerrar
                                     </button>
                                     @endif
@@ -193,65 +184,31 @@
     </div>
 </div>
 
-{{-- MODAL CIERRE COMPLETO --}}
+{{-- MODAL CIERRE COMPLETO SIMPLIFICADO --}}
 <div class="modal fade" id="modalFinalizar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered text-start">
+    <div class="modal-dialog modal-dialog-centered text-start">
         <form action="{{ route('endurecimiento.finalizar', $endurecimiento->ID_Endurecimiento) }}" method="POST">
             @csrf
             <div class="modal-content border-0 shadow text-start">
                 <div class="modal-header bg-dark text-white border-0 text-start">
-                    <h5 class="modal-title fw-bold">Selección Final y Cierre de Etapa</h5>
+                    <h5 class="modal-title fw-bold">Confirmar Cierre de Etapa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <p class="text-muted mb-4 small text-start">Ingrese la merma de selección final por cada lote antes de cerrar.</p>
-                    <div class="table-responsive text-start">
-                        <table class="table table-sm align-middle text-start">
-                            <thead class="bg-light text-start small text-uppercase">
-                                <tr>
-                                    <th>Lote / Variedad / Cód</th>
-                                    <th class="text-center">Stock Actual</th>
-                                    <th class="text-center" style="width: 150px;">Merma Final</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($lotes_detallados as $lote)
-                                @if($lote->pivot->Estado_Lote != 'Finalizado')
-                                @php
-                                $datos_o = DB::table('aclimatacion_variedad')->where('ID_llegada', $lote->ID_Llegada)->where('variedad_id', $lote->pivot->variedad_id)->first();
-                                $ent = $datos_o ? ($datos_o->cantidad_inicial_lote - $datos_o->merma_acumulada_lote) : 0;
-                                $stk = (int) ($ent - ($lote->pivot->merma_acumulada_lote ?? 0));
-                                $nombre_f = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana);
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <div class="fw-bold small text-start">{{ $nombre_f }}</div>
-                                        <div class="text-muted text-start" style="font-size: 0.7rem;">
-                                            {{ $lote->variedad->nombre }} ({{ $lote->variedad->codigo ?? 'N/A' }})
-                                        </div>
-                                    </td>
-                                    <td class="text-center fw-bold text-primary">{{ number_format($stk, 0) }}</td>
-                                    <td>
-                                        <input type="number" name="merma_final[{{ $lote->ID_Llegada }}][{{ $lote->pivot->variedad_id }}]"
-                                            class="form-control form-control-sm text-center fw-bold" value="0" min="0" max="{{ $stk }}">
-                                    </td>
-                                </tr>
-                                @endif
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="modal-body p-4 text-center">
+                    <i class="bi bi-exclamation-triangle text-warning display-4 mb-3"></i>
+                    <p class="mb-0">¿Estás seguro de que deseas finalizar la etapa de endurecimiento?</p>
+                    <p class="text-muted small">Esta acción cerrará todos los registros y guardará el stock final de <strong>{{ number_format($stock_general_planta) }}</strong> unidades.</p>
                 </div>
-                <div class="modal-footer border-0 bg-light">
+                <div class="modal-footer border-0 bg-light justify-content-center">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow">CONFIRMAR CIERRE</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow">CONFIRMAR Y FINALIZAR</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-{{-- MODALES INDIVIDUALES (MERMA Y CIERRE INDEPENDIENTE) --}}
+{{-- MODALES INDIVIDUALES --}}
 @foreach ($lotes_detallados as $lote)
 @php
 $datos_o = DB::table('aclimatacion_variedad')->where('ID_llegada', $lote->ID_Llegada)->where('variedad_id', $lote->pivot->variedad_id)->first();
@@ -259,41 +216,34 @@ $ent = $datos_o ? ($datos_o->cantidad_inicial_lote - $datos_o->merma_acumulada_l
 $stk = (int) ($ent - ($lote->pivot->merma_acumulada_lote ?? 0));
 $modalId = "modalM_" . $lote->ID_Llegada . "_" . $lote->pivot->variedad_id;
 $modalCInd = "modalCInd_" . $lote->ID_Llegada . "_" . $lote->pivot->variedad_id;
-$nombre_modal = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana);
 @endphp
 
-{{-- Modal Merma Diaria --}}
 <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered text-start">
         <form action="{{ route('endurecimiento.registrarMerma', $endurecimiento->ID_Endurecimiento) }}" method="POST">
             @csrf
-            <div class="modal-content text-start">
-                <div class="modal-header bg-danger text-white border-0 text-start">
-                    <h5 class="modal-title fw-bold text-start">Registrar Merma</h5>
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title fw-bold">Registrar Merma</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body py-4 text-center">
+                <div class="modal-body py-4 text-start">
                     <input type="hidden" name="id_llegada" value="{{ $lote->ID_Llegada }}">
                     <input type="hidden" name="id_variedad" value="{{ $lote->pivot->variedad_id }}">
-
-                    <div class="mb-3 text-start">
-                        <small class="text-muted text-uppercase d-block text-start">{{ $nombre_modal }}</small>
-                        <div class="fw-bold mb-2 text-start">{{ $lote->variedad->nombre }} ({{ $lote->variedad->codigo ?? 'N/A' }})</div>
-                        <label class="form-label fw-bold text-start">Cantidad de Plantas Muertas:</label>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Plantas Muertas ({{ $lote->variedad->nombre }}):</label>
                         <input type="number" name="cantidad_merma" class="form-control form-control-lg text-center fw-bold text-danger" required min="1" max="{{ $stk }}">
-                        <div class="form-text mt-2 text-danger text-start">Máximo disponible: {{ number_format($stk, 0) }} und.</div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 text-center">
+                <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-danger px-4 fw-bold shadow">Guardar Merma</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">Guardar Merma</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-{{-- Modal Cierre Independiente --}}
 <div class="modal fade" id="{{ $modalCInd }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered text-start">
         <form action="{{ route('endurecimiento.finalizarVariedad', $endurecimiento->ID_Endurecimiento) }}" method="POST">
@@ -305,16 +255,10 @@ $nombre_modal = str_replace($meses_en, $meses_es, $lote->nombre_lote_semana);
                     <h5 class="modal-title fw-bold">Cerrar Variedad Individual</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <small class="text-muted text-uppercase d-block">{{ $nombre_modal }}</small>
-                        <div class="fw-bold fs-5">{{ $lote->variedad->nombre }}</div>
-                    </div>
-                    <div class="bg-light p-3 rounded mb-3">
-                        <label class="form-label fw-bold">Merma de Selección Final:</label>
-                        <input type="number" name="merma_final_individual" class="form-control form-control-lg text-center fw-bold" value="0" min="0" max="{{ $stk }}">
-                        <small class="text-muted mt-2 d-block">Indique plantas descartadas en la selección final antes de cerrar.</small>
-                    </div>
+                <div class="modal-body p-4 text-start">
+                    <label class="form-label fw-bold">Merma de Selección Final:</label>
+                    <input type="number" name="merma_final_individual" class="form-control form-control-lg text-center fw-bold" value="0" min="0" max="{{ $stk }}">
+                    <small class="text-muted mt-2 d-block">Al cerrar, el contador de días para esta variedad se detendrá.</small>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
