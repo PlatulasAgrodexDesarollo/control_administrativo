@@ -9,26 +9,39 @@ class Endurecimiento extends Model
 {
     protected $table = 'endurecimientos';
     protected $primaryKey = 'ID_Endurecimiento';
-    protected $fillable = ['Fecha_Ingreso', 'Fecha_Cierre', 'cantidad_inicial', 'cantidad_final', 'merma_total_etapa', 'Estado_General', 'Observaciones', 'Operador_Responsable'];
+    protected $fillable = [
+        'Fecha_Ingreso', 
+        'Fecha_Cierre', 
+        'cantidad_inicial', 
+        'cantidad_final', 
+        'merma_total_etapa', 
+        'Estado_General', 
+        'Observaciones', 
+        'Operador_Responsable'
+    ];
 
-
-public function lotes()
+    public function lotes()
 {
-    // Añadimos 'variedad' a la carga para que Laravel sepa cómo unir las 3 tablas
     return $this->belongsToMany(LlegadaPlanta::class, 'endurecimiento_variedad', 'endurecimiento_id', 'ID_llegada')
-                ->withPivot([
-                    'variedad_id', 
-                    'merma_inicial_plantacion',
-                    'merma_aclimatacion_pasada',
-                    'cantidad_inicial_lote',
-                    'stock_entrada_etapa',
-                    'cantidad_plantas',
-                    'merma_acumulada_lote',
-                    'Estado_Lote'
-                ])
-                ->join('variedades', 'endurecimiento_variedad.variedad_id', '=', 'variedades.ID_Variedad')
-                ->select('llegada_planta.*', 'variedades.nombre as variedad_nombre', 'variedades.codigo as variedad_codigo');
+        ->withPivot([
+            'variedad_id', 
+            'merma_inicial_plantacion',
+            'merma_aclimatacion_pasada',
+            'cantidad_inicial_lote',
+            'stock_entrada_etapa',
+            'cantidad_plantas',
+            'merma_acumulada_lote',
+            'merma_seleccion_final',
+            'Estado_Lote',
+            'fecha_finalizado',
+            'created_at', // Aseguramos que se pida la columna
+            'updated_at'
+        ])
+        ->withTimestamps() // <--- CRÍTICO: Esto activa la lectura de fechas en el pivot
+        ->join('variedades', 'endurecimiento_variedad.variedad_id', '=', 'variedades.ID_Variedad')
+        ->select('llegada_planta.*', 'variedades.nombre as variedad_nombre', 'variedades.codigo as variedad_codigo');
 }
+
     public function responsable()
     {
         return $this->belongsTo(Operador::class, 'Operador_Responsable', 'ID_Operador');
