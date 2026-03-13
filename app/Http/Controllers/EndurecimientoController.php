@@ -138,29 +138,33 @@ public function store(Request $request)
 
     DB::beginTransaction();
     try {
-        // 1. Buscamos la variedad en el origen con su aclimatacion_id real
+        // 1. Buscamos la variedad en el origen (Aclimatación)
         $fuente = DB::table('aclimatacion_variedad')
             ->where('id_aclimatacion_va', $request->aclimatacion_variedad_id)
             ->first();
         
         if (!$fuente) return back()->with('error', 'Origen no encontrado.');
 
+        // NUEVO: Buscamos la merma inicial de plantación para guardarla físicamente
+        $merma_inicial_p = DB::table('plantacion')
+            ->where('ID_Llegada', $fuente->ID_llegada)
+            ->where('ID_Variedad', $fuente->variedad_id)
+            ->sum('cantidad_perdida');
+
         $stock_neto = $fuente->cantidad_plantas - ($fuente->merma_acumulada_lote ?? 0);
 
         // 2. BUSQUEDA EXACTA: 
         $registroExistente = DB::table('endurecimiento_variedad as ev')
             ->join('endurecimientos as e', 'ev.endurecimiento_id', '=', 'e.ID_Endurecimiento')
-            ->where('ev.aclimatacion_id', $fuente->aclimatacion_id) // <--- Aquí está la precisión
+            ->where('ev.aclimatacion_id', $fuente->aclimatacion_id) 
             ->where('e.Estado_General', 'En Proceso')
             ->select('e.ID_Endurecimiento')
             ->first();
 
         if ($registroExistente) {
-            // SI EXISTE: Añadimos la variedad al mismo grupo
             $id_maestro = $registroExistente->ID_Endurecimiento;
             DB::table('endurecimientos')->where('ID_Endurecimiento', $id_maestro)->increment('cantidad_inicial', $stock_neto);
         } else {
-            // SI NO EXISTE: Creamos el registro maestro por primera vez
             $id_maestro = DB::table('endurecimientos')->insertGetId([
                 'Fecha_Ingreso'        => $request->Fecha_Ingreso,
                 'cantidad_inicial'     => $stock_neto,
@@ -171,8 +175,7 @@ public function store(Request $request)
             ]);
         }
 
-        // 3. INSERTAMOS EL DETALLE CON EL ID DE ACLIMATACIÓN
-        // Ahora sí guardamos el aclimatacion_id para que el sistema "sepa" la procedencia
+        // 3. INSERTAMOS EL DETALLE
         DB::table('endurecimiento_variedad')->updateOrInsert(
             [
                 'endurecimiento_id' => $id_maestro,
@@ -180,23 +183,27 @@ public function store(Request $request)
                 'ID_llegada'        => $fuente->ID_llegada,
             ],
             [
-                'aclimatacion_id'           => $fuente->aclimatacion_id, // <--- Dato guardado con éxito
+                'aclimatacion_id'           => $fuente->aclimatacion_id,
+                'merma_inicial_plantacion'  => (int)$merma_inicial_p, 
                 'merma_aclimatacion_pasada' => (int)($fuente->merma_acumulada_lote ?? 0),
                 'cantidad_inicial_lote'     => $fuente->cantidad_plantas,
                 'stock_entrada_etapa'       => $stock_neto,  
                 'cantidad_plantas'          => $stock_neto,
                 'merma_acumulada_lote'      => 0,
-                'Estado_Lote'               => 'Normal'
+                'Estado_Lote'               => 'Normal',
+                'created_at'                => now(),
+                'updated_at'                => now()
             ]
         );
 
         DB::commit();
-        return redirect()->route('endurecimiento.index')->with('success', 'Variedad integrada correctamente al lote de origen.');
+        return redirect()->route('endurecimiento.index')->with('success', 'Variedad integrada y datos de plantación guardados.');
 
     } catch (\Exception $e) {
         DB::rollBack();
-        dd("Falla en la base de datos. ¿Ya agregaste la columna aclimatacion_id?: ", $e->getMessage());
+        dd("Error: ", $e->getMessage());
     }
+
 }
 
     /**
@@ -359,49 +366,38 @@ public function finalizarEtapa(Request $request, $id)
 
 public function finalizarVariedad(Request $request, $id)
 {
-    $request->validate([
-        'id_llegada' => 'required',
-        'id_variedad' => 'required',
-        'merma_final_individual' => 'required|numeric|min:0'
-    ]);
-
     DB::beginTransaction();
     try {
-        // 1. Actualizamos la variedad específica en la tabla intermedia
+        // Actualizamos la fila exacta
         DB::table('endurecimiento_variedad')
             ->where('endurecimiento_id', $id)
             ->where('ID_llegada', $request->id_llegada)
             ->where('variedad_id', $request->id_variedad)
             ->update([
                 'merma_seleccion_final' => $request->merma_final_individual,
-                'Estado_Lote' => 'Finalizado'
+                'Estado_Lote'           => 'Finalizado',
+                'fecha_finalizado'      => now(), // Detiene el contador
+                'updated_at'            => now()  // Actualiza el registro
             ]);
 
-        // 2. Verificamos si aún quedan variedades sin finalizar en este endurecimiento
+        // Verificamos si ya podemos cerrar el endurecimiento completo
         $pendientes = DB::table('endurecimiento_variedad')
             ->where('endurecimiento_id', $id)
             ->where('Estado_Lote', '!=', 'Finalizado')
             ->count();
 
-        // 3. Si ya se terminaron todas, cerramos el endurecimiento general
         if ($pendientes === 0) {
             DB::table('endurecimientos')
                 ->where('ID_Endurecimiento', $id)
-                ->update([
-                    'Estado_General' => 'Finalizado',
-                    'Fecha_Cierre' => now()
-                ]);
+                ->update(['Estado_General' => 'Finalizado', 'Fecha_Cierre' => now()]);
         }
 
         DB::commit();
-        return back()->with('success', 'Variedad cerrada correctamente.');
-
+        return back()->with('success', 'Variedad cerrada. El contador se ha detenido.');
     } catch (\Exception $e) {
         DB::rollBack();
-        return back()->with('error', 'Error al procesar el cierre: ' . $e->getMessage());
+        return back()->with('error', 'Error: ' . $e->getMessage());
     }
+
 }
-
-
-
 }
