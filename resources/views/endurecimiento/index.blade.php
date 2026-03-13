@@ -28,7 +28,7 @@
                     <tbody>
                         @forelse($endurecimientos as $e)
                         <tr>
-                            <td class="ps-4 fw-bold text-secondary">
+                            <td class="ps-4 fw-bold ">
                                 {{ \Carbon\Carbon::parse($e->Fecha_Ingreso)->format('d/m/Y') }}
                             </td>
                             <td>
