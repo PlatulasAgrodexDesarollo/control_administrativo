@@ -18,7 +18,6 @@
 
         $lotes_aclimatados = $aclimatacion->lotesAclimatados;
 
-        // Status Global para el Header
         $clase_badge_global = $aclimatacion->fecha_cierre ? 'bg-success' : 'bg-info';
         $texto_status_global = $aclimatacion->fecha_cierre ? 'Finalizada' : 'Activa';
 
@@ -80,7 +79,6 @@
                 </div>
                 <div class="col-md-6 border-start ps-4 text-center d-flex flex-column justify-content-center">
                     <p class="h5"><strong>Estado Global de Etapa</strong></p>
-                 
                     <hr class="w-75 mx-auto">
                     <p class="mb-1 text-start ps-5">Ingreso Global: <strong>{{ number_format($stock_inicial_aclimatacion) }}</strong></p>
                     <p class="text-danger text-start ps-5">Merma Aclimatación: <strong>{{ number_format($merma_aclimatacion_acumulada) }}</strong></p>
@@ -91,107 +89,124 @@
 
     <h2 class="h5 mt-4 mb-3 text-dark text-start"><i class="bi bi-box-arrow-right me-2"></i>Control de Salidas e Historial de Días</h2>
 
-<div class="card shadow-sm border-0">
-    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-        <table class="table table-sm table-hover align-middle mb-0 text-start" style="font-size: 0.82rem;">
-            <thead class="table-dark sticky-top">
-                <tr class="text-center">
-                    <th class="ps-3 text-start">Variedad [Cód]</th>
-                    <th>Lote</th>
-                    <th>Días en Etapa</th>
-                    <th>Inicial</th>
-                    <th class="text-danger">Merma</th>
-                    <th class="text-primary">Stock Real</th>
-                    <th style="width: 140px;">Registrar Merma</th>
-                    <th>Estado</th>
-                    <th class="pe-3">Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($lotes_aclimatados as $lote)
-                @php
-                    $lid = $lote->ID_Llegada;
-                    $vid = $lote->ID_Variedad;
-                    
-                    $pivotData = DB::table('aclimatacion_variedad')
-                        ->where('aclimatacion_id', $aclimatacion->ID_Aclimatacion)
-                        ->where('ID_llegada', $lid)
-                        ->where('variedad_id', $vid)
-                        ->first();
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover align-middle mb-0 text-start" style="font-size: 0.82rem;">
+                <thead class="table-dark sticky-top">
+                    <tr class="text-center">
+                        <th class="ps-3 text-start">Variedad [Cód]</th>
+                        <th>Lote</th>
+                        <th>Días en Etapa</th>
+                        <th>Inicial</th>
+                        <th class="text-danger">Merma Plant.</th>
+                        <th class="text-danger">Merma Aclim.</th>
+                        <th>% Pérdida</th>
+                        <th class="text-primary">Stock Real</th>
+                        <th style="width: 140px;">Registrar Merma</th>
+                        <th>Estado</th>
+                        <th class="pe-3">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($lotes_aclimatados as $lote)
+                    @php
+                        $lid = $lote->ID_Llegada;
+                        $vid = $lote->ID_Variedad;
+                        
+                        $pivotData = DB::table('aclimatacion_variedad')
+                            ->where('aclimatacion_id', $aclimatacion->ID_Aclimatacion)
+                            ->where('ID_llegada', $lid)
+                            ->where('variedad_id', $vid)
+                            ->first();
 
-                    $is_finalizado = !is_null($pivotData->fecha_finalizado_variedad);
-                    
-                    // LÓGICA DEL CONTADOR INDIVIDUAL
-                    $fecha_inicio_conteo = Carbon::parse($aclimatacion->Fecha_Ingreso)->startOfDay();
-                    // Si la variedad está finalizada, usamos su fecha_finalizado_variedad, si no, usamos el día de hoy
-                    $fecha_fin_conteo = $is_finalizado ? Carbon::parse($pivotData->fecha_finalizado_variedad)->startOfDay() : Carbon::now()->startOfDay();
-                    $dias_individuales = (int) $fecha_inicio_conteo->diffInDays($fecha_fin_conteo);
+                        $m_plantacion = (int) ($pivotData->merma_inicial_plantacion ?? 0);
+                        if($m_plantacion == 0) {
+                            $m_plantacion = (int) DB::table('plantacion')
+                                ->where('ID_Llegada', $lid)
+                                ->where('ID_Variedad', $vid)
+                                ->sum('cantidad_perdida');
+                        }
 
-                    $cantidad_inicial_v = $pivotData->cantidad_plantas; 
-                    $merma_aclim_v = $pivotData->merma_acumulada_lote ?? 0; 
-                    $stock_real_v = $cantidad_inicial_v - $merma_aclim_v;
-                    
-                    $nombre_lote_es = str_replace($meses_ing, $meses_esp, $lote->nombre_lote_semana ?? 'N/A');
-                @endphp
-                
-                <tr class="{{ $is_finalizado ? 'table-success' : '' }} text-center">
-                    <td class="ps-3 text-start">
-                        <span class="fw-bold {{ $is_finalizado ? 'text-success' : 'text-dark' }}">{{ $lote->variedad->nombre }}</span><br>
-                        <small class="text-muted">[{{ $lote->variedad->codigo }}]</small>
-                    </td>
-                    <td><small class="text-muted">{{ $nombre_lote_es }}</small></td>
-                    
-                    {{-- CONTADOR INDIVIDUAL --}}
-                    <td>
-                        <span class="badge {{ $is_finalizado ? 'bg-secondary' : 'bg-dark' }} rounded-pill">
-                            {{ $dias_individuales }} días
-                        </span>
-                    </td>
+                        $is_finalizado = !is_null($pivotData->fecha_finalizado_variedad);
+                        
+                        $fecha_inicio_conteo = Carbon::parse($aclimatacion->Fecha_Ingreso)->startOfDay();
+                        $fecha_fin_conteo = $is_finalizado ? Carbon::parse($pivotData->fecha_finalizado_variedad)->startOfDay() : Carbon::now()->startOfDay();
+                        $dias_individuales = (int) $fecha_inicio_conteo->diffInDays($fecha_fin_conteo);
 
-                    <td class="fw-bold">{{ number_format($cantidad_inicial_v) }}</td>
-                    <td class="text-danger fw-bold">{{ $merma_aclim_v > 0 ? '-' . number_format($merma_aclim_v) : '0' }}</td>
-                    <td class="text-primary fw-bold bg-light">{{ number_format($stock_real_v) }}</td>
+                        $cantidad_inicial_v = $pivotData->cantidad_plantas; 
+                        $merma_aclim_v = $pivotData->merma_acumulada_lote ?? 0; 
+                        $stock_real_v = $cantidad_inicial_v - $merma_aclim_v;
+
+                        // --- CÁLCULO PORCENTAJE DE PÉRDIDA ---
+                        $porcentaje_v = ($stock_real_v > 0) ? ($merma_aclim_v * 100) / $stock_real_v : 0;
+                        
+                        $nombre_lote_es = str_replace($meses_ing, $meses_esp, $lote->nombre_lote_semana ?? 'N/A');
+                    @endphp
                     
-                    <td>
-                        @if(!$is_finalizado)
-                            <form action="{{ route('aclimatacion.registrar_merma_lote', $aclimatacion->ID_Aclimatacion) }}" method="POST">
-                                @csrf
-                                <input type="hidden" name="lote_id" value="{{ $lid }}">
-                                <input type="hidden" name="variedad_id" value="{{ $vid }}">
-                                <div class="input-group input-group-sm mx-auto" style="width: 100px;">
-                                    <input type="number" name="cantidad_merma" class="form-control" placeholder="Cant." required max="{{ $stock_real_v }}">
-                                    <button class="btn btn-danger rounded-pill" type="submit"><i class="bi bi-dash"></i></button>
-                                </div>
-                            </form>
-                        @else
-                            <small class="text-muted">Cerrado</small>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="badge {{ $is_finalizado ? 'bg-success' : 'bg-info' }}" style="font-size: 0.7rem;">
-                            {{ $is_finalizado ? 'LISTO' : 'EN PROCESO' }}
-                        </span>
-                    </td>
-                    <td class="pe-3 text-end">
-                        @if(!$is_finalizado)
-                            <form action="{{ route('aclimatacion.finalizar_variedad', $aclimatacion->ID_Aclimatacion) }}" method="POST">
-                                @csrf
-                                <input type="hidden" name="lote_id" value="{{ $lid }}">
-                                <input type="hidden" name="variedad_id" value="{{ $vid }}">
-                                <button type="submit" class="btn btn-sm btn-success p-1" onclick="return confirm('¿Finalizar variedad? El contador de días se detendrá.')">
-                                    <i class="bi bi-check-lg"></i>
-                                </button>
-                            </form>
-                        @else
-                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+                    <tr class="{{ $is_finalizado ? 'table-success' : '' }} text-center">
+                        <td class="ps-3 text-start">
+                            <span class="fw-bold {{ $is_finalizado ? 'text-success' : 'text-dark' }}">{{ $lote->variedad->nombre }}</span><br>
+                            <small class="text-muted">[{{ $lote->variedad->codigo }}]</small>
+                        </td>
+                        <td><small class="text-muted">{{ $nombre_lote_es }}</small></td>
+                        
+                        <td>
+                            <span class="badge {{ $is_finalizado ? 'bg-secondary' : 'bg-dark' }} rounded-pill">
+                                {{ $dias_individuales }} días
+                            </span>
+                        </td>
+
+                        <td class="fw-bold">{{ number_format($cantidad_inicial_v) }}</td>
+                        <td class="text-danger fw-bold">{{ number_format($m_plantacion) }}</td>
+                        <td class="text-danger fw-bold">{{ $merma_aclim_v > 0 ? '-' . number_format($merma_aclim_v) : '0' }}</td>
+                        
+                        {{-- PORCENTAJE CON COLOR CONDICIONAL: Rojo > 6%, Verde <= 6% --}}
+                        <td class="fw-bold {{ $porcentaje_v > 6 ? 'text-danger' : 'text-success' }}">
+                            {{ number_format($porcentaje_v, 2) }}%
+                        </td>
+
+                        <td class="text-primary fw-bold bg-light">{{ number_format($stock_real_v) }}</td>
+                        
+                        <td>
+                            @if(!$is_finalizado)
+                                <form action="{{ route('aclimatacion.registrar_merma_lote', $aclimatacion->ID_Aclimatacion) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="lote_id" value="{{ $lid }}">
+                                    <input type="hidden" name="variedad_id" value="{{ $vid }}">
+                                    <div class="input-group input-group-sm mx-auto" style="width: 100px;">
+                                        <input type="number" name="cantidad_merma" class="form-control" placeholder="Cant." required max="{{ $stock_real_v }}">
+                                        <button class="btn btn-danger rounded-pill" type="submit"><i class="bi bi-dash"></i></button>
+                                    </div>
+                                </form>
+                            @else
+                                <small class="text-muted">Cerrado</small>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="badge {{ $is_finalizado ? 'bg-success' : 'bg-info' }}" style="font-size: 0.7rem;">
+                                {{ $is_finalizado ? 'LISTO' : 'EN PROCESO' }}
+                            </span>
+                        </td>
+                        <td class="pe-3 text-end">
+                            @if(!$is_finalizado)
+                                <form action="{{ route('aclimatacion.finalizar_variedad', $aclimatacion->ID_Aclimatacion) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="lote_id" value="{{ $lid }}">
+                                    <input type="hidden" name="variedad_id" value="{{ $vid }}">
+                                    <button type="submit" class="btn btn-sm btn-success p-1" onclick="return confirm('¿Finalizar variedad? El contador de días se detendrá.')">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                            @else
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
     {{-- CIERRE DE ETAPA GLOBAL --}}
     @php
