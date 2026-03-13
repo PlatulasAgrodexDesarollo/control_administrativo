@@ -34,10 +34,10 @@ class Endurecimiento extends Model
             'merma_seleccion_final',
             'Estado_Lote',
             'fecha_finalizado',
-            'created_at', // Aseguramos que se pida la columna
+            'created_at',
             'updated_at'
         ])
-        ->withTimestamps() // <--- CRÍTICO: Esto activa la lectura de fechas en el pivot
+        ->withTimestamps() 
         ->join('variedades', 'endurecimiento_variedad.variedad_id', '=', 'variedades.ID_Variedad')
         ->select('llegada_planta.*', 'variedades.nombre as variedad_nombre', 'variedades.codigo as variedad_codigo');
 }
