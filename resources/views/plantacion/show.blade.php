@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Detalle de Plantación General</h1>
-        <span class="badge bg-info text-dark">ID Registro: #{{ $registro->ID_Plantacion }}</span>
+       
     </div>
 
     <div class="card shadow-lg border-0 mb-4">
@@ -40,7 +40,17 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><strong>Variedad:</strong> {{ $registro->variedad->nombre ?? 'N/A' }}</li>
                         <li class="mb-2"><strong>Código Variedad:</strong> <span class="badge bg-secondary">{{ $registro->variedad->codigo ?? 'S/C' }}</span></li>
-                        <li class="mb-2"><strong>Nombre del Lote:</strong> {{ $registro->loteLlegada->nombre_lote_semana ?? 'N/A' }}</li>
+                        <li class="mb-2">
+                            <strong>Nombre del Lote:</strong> 
+                            @php
+                                \Carbon\Carbon::setLocale('es');
+                                $meses_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                $meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                                $nombre_lote = $registro->loteLlegada->nombre_lote_semana ?? 'N/A';
+                                $nombre_lote_es = str_replace($meses_en, $meses_es, $nombre_lote);
+                            @endphp
+                            {{ $nombre_lote_es }}
+                        </li>
                         <li class="mb-2"><strong>Fecha de Registro:</strong> {{ \Carbon\Carbon::parse($registro->Fecha_Plantacion)->format('d/m/Y') }}</li>
                     </ul>
                 </div>
